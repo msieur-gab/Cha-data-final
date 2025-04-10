@@ -13,14 +13,10 @@ export class BaseCalculator {
    * @returns {Object} - Results containing inference and serialized data
    */
   calculate(tea) {
-    const inferenceResult = this.infer(tea);
-    // Extract trace from inference result if it exists
-    const { trace, ...inference } = inferenceResult;
-    
+    const inference = this.infer(tea);
     return {
       inference: this.formatInference(inference),
-      data: this.serialize(inference),
-      trace: trace || [] // Include trace in the response, default to empty array
+      data: this.serialize(inference)
     };
   }
   

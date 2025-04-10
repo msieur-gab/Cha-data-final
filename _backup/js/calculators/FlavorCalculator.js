@@ -82,65 +82,27 @@ export class FlavorCalculator extends BaseCalculator {
 
     // Override infer method from BaseCalculator
     infer(tea) {
-        // Initialize the trace array
-        let trace = [];
-        
         // Ensure flavorProfile is an array of strings
         let flavorProfileInput = tea?.flavorProfile || tea?.flavor?.primary || [];
         if (!Array.isArray(flavorProfileInput)) {
             flavorProfileInput = [];
         }
         const identifiedFlavors = flavorProfileInput.filter(f => typeof f === 'string');
-        
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw tea flavor data", 
-            adjustment: `Extracted ${identifiedFlavors.length} flavor notes`, 
-            value: identifiedFlavors.length > 0 ? identifiedFlavors.join(', ') : 'None'
-        });
 
         if (identifiedFlavors.length === 0) {
-            trace.push({ 
-                step: "Input Validation", 
-                reason: "Missing flavor data", 
-                adjustment: "Using default values", 
-                value: "No flavor profile available" 
-            });
-            
             return {
                 description: 'No flavor profile available.',
                 identifiedFlavors: [],
                 dominantFlavors: [],
                 dominantFlavorCategories: [],
                 intensityEstimate: "N/A",
-                analysis: { foodPairingHints: [], seasonalAffinityHints: [], activityHints: [] },
-                trace
+                analysis: { foodPairingHints: [], seasonalAffinityHints: [], activityHints: [] }
             };
         }
 
         const dominantFlavors = this.getDominantFlavors(identifiedFlavors); // Keep existing helper is fine
-        trace.push({ 
-            step: "Dominant Flavors Determination", 
-            reason: `From ${identifiedFlavors.length} flavor notes`, 
-            adjustment: `Selected top ${dominantFlavors.length} notes`, 
-            value: dominantFlavors.join(', ')
-        });
-        
         const dominantFlavorCategories = getDominantFlavorCategories(identifiedFlavors);
-        trace.push({ 
-            step: "Dominant Categories Determination", 
-            reason: `From ${identifiedFlavors.length} flavor notes`, 
-            adjustment: `Identified ${dominantFlavorCategories.length} categories`, 
-            value: dominantFlavorCategories.join(', ')
-        });
-        
         const intensityEstimate = estimateFlavorIntensity(identifiedFlavors);
-        trace.push({ 
-            step: "Intensity Estimation", 
-            reason: `Based on ${identifiedFlavors.length} flavor notes`, 
-            adjustment: `Categorized as '${intensityEstimate}'`, 
-            value: intensityEstimate
-        });
 
         // --- Aggregate analysis hints from reference data ---
         const analysis = {
@@ -151,46 +113,16 @@ export class FlavorCalculator extends BaseCalculator {
 
         identifiedFlavors.forEach(flavor => {
             const flavorData = getFlavorData(flavor);
-            trace.push({ 
-                step: "Flavor Lookup", 
-                reason: `Flavor: '${flavor}'`, 
-                adjustment: flavorData ? "Found descriptor data" : "No descriptor data found", 
-                value: flavorData ? Object.keys(flavorData).join(', ') : 'null'
-            });
-            
             if (flavorData) {
-                if (Array.isArray(flavorData.foodPairingHints) && flavorData.foodPairingHints.length > 0) {
-                    trace.push({ 
-                        step: "Hint Added (Food)", 
-                        reason: `Flavor: '${flavor}'`, 
-                        adjustment: `Added: [${flavorData.foodPairingHints.join(', ')}]`,
-                        value: flavorData.foodPairingHints.join(', ')
-                    });
-                    
+                if (Array.isArray(flavorData.foodPairingHints)) {
                     flavorData.foodPairingHints.forEach(hint => analysis.foodPairingHints.add(hint));
                 }
-                
-                if (Array.isArray(flavorData.seasonalAffinityHints) && flavorData.seasonalAffinityHints.length > 0) {
-                    trace.push({ 
-                        step: "Hint Added (Season)", 
-                        reason: `Flavor: '${flavor}'`, 
-                        adjustment: `Added: [${flavorData.seasonalAffinityHints.join(', ')}]`,
-                        value: flavorData.seasonalAffinityHints.join(', ')
-                    });
-                    
-                    flavorData.seasonalAffinityHints.forEach(hint => analysis.seasonalAffinityHints.add(hint));
+                if (Array.isArray(flavorData.seasonalAffinityHints)) {
+                     flavorData.seasonalAffinityHints.forEach(hint => analysis.seasonalAffinityHints.add(hint));
                 }
-                
-                if (Array.isArray(flavorData.activityHints) && flavorData.activityHints.length > 0) {
-                    trace.push({ 
-                        step: "Hint Added (Activity)", 
-                        reason: `Flavor: '${flavor}'`, 
-                        adjustment: `Added: [${flavorData.activityHints.join(', ')}]`,
-                        value: flavorData.activityHints.join(', ')
-                    });
-                    
-                    flavorData.activityHints.forEach(hint => analysis.activityHints.add(hint));
-                }
+                 if (Array.isArray(flavorData.activityHints)) {
+                     flavorData.activityHints.forEach(hint => analysis.activityHints.add(hint));
+                 }
             }
         });
 
@@ -200,23 +132,9 @@ export class FlavorCalculator extends BaseCalculator {
             seasonalAffinityHints: Array.from(analysis.seasonalAffinityHints),
             activityHints: Array.from(analysis.activityHints)
         };
-        
-        trace.push({ 
-            step: "Analysis Aggregation", 
-            reason: "Combining all hints", 
-            adjustment: `Food hints: ${finalAnalysis.foodPairingHints.length}, Season hints: ${finalAnalysis.seasonalAffinityHints.length}, Activity hints: ${finalAnalysis.activityHints.length}`, 
-            value: `Food sample: ${finalAnalysis.foodPairingHints.slice(0, 3).join(', ')}${finalAnalysis.foodPairingHints.length > 3 ? '...' : ''}`
-        });
 
         // --- Generate Description ---
         const description = this.generateFlavorDescription(identifiedFlavors, dominantFlavors, dominantFlavorCategories, intensityEstimate);
-        
-        trace.push({ 
-            step: "Description Generation", 
-            reason: "Summarizing flavor analysis", 
-            adjustment: "Generated human-readable description", 
-            value: description.substring(0, 50) + "..." // Truncate for trace
-        });
 
         return {
             description,
@@ -224,8 +142,7 @@ export class FlavorCalculator extends BaseCalculator {
             dominantFlavors, // Top 3-5 prominent
             dominantFlavorCategories, // Broad categories present
             intensityEstimate, // Overall strength/complexity sense
-            analysis: finalAnalysis, // Aggregated hints
-            trace
+            analysis: finalAnalysis // Aggregated hints
         };
     }
 

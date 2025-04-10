@@ -134,36 +134,18 @@ export class CompoundCalculator extends BaseCalculator {
 
     // Override infer method from BaseCalculator
     infer(tea) {
-        // Initialize the trace array
-        let trace = [];
-        
         // Use default 0 if properties are missing or not numbers
         const caffeineLevel = typeof tea?.caffeineLevel === 'number' ? tea.caffeineLevel : 0;
         const lTheanineLevel = typeof tea?.lTheanineLevel === 'number' ? tea.lTheanineLevel : 0;
 
         // Check if both essential compounds are zero or absent
         if (caffeineLevel === 0 && lTheanineLevel === 0) {
-             trace.push({ 
-                 step: "Input Validation", 
-                 reason: "Missing compound data", 
-                 adjustment: "Using default values", 
-                 value: "caffeineLevel: 0, lTheanineLevel: 0" 
-             });
-             
              return {
                  description: 'No significant caffeine or L-theanine data available.',
                  levels: { caffeineLevel: 0, lTheanineLevel: 0, lTheanineToCaffeineRatio: 0 },
-                 analysis: { ratioCategory: "N/A", stimulationLevel: "None", relaxationLevel: "None", compoundProfile: "N/A" },
-                 trace
+                 analysis: { ratioCategory: "N/A", stimulationLevel: "None", relaxationLevel: "None", compoundProfile: "N/A" }
              };
         }
-
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw tea data", 
-            adjustment: `Processing compound values`, 
-            value: `caffeineLevel: ${caffeineLevel}, lTheanineLevel: ${lTheanineLevel}` 
-        });
 
         const lTheanineToCaffeineRatio = caffeineLevel > 0 ? lTheanineLevel / caffeineLevel : 0;
 
@@ -173,46 +155,11 @@ export class CompoundCalculator extends BaseCalculator {
             lTheanineToCaffeineRatio
         };
 
-        trace.push({ 
-            step: "Ratio Calculation", 
-            reason: "Quantifying compound balance", 
-            adjustment: `L-Theanine to Caffeine Ratio calculated`, 
-            value: lTheanineToCaffeineRatio.toFixed(2) 
-        });
-
         // --- Perform the new analysis ---
         const ratioCat = determineRatioCategory(lTheanineToCaffeineRatio);
-        trace.push({ 
-            step: "Ratio Category Determination", 
-            reason: `Ratio: ${lTheanineToCaffeineRatio.toFixed(2)}`, 
-            adjustment: `Categorized as '${ratioCat}'`, 
-            value: ratioCat 
-        });
-        
         const stimEffect = determineStimulatingEffect(caffeineLevel, lTheanineLevel);
-        trace.push({ 
-            step: "Stimulation Level Determination", 
-            reason: `Caffeine: ${caffeineLevel}, L-Theanine: ${lTheanineLevel}`, 
-            adjustment: `Determined as '${stimEffect}'`, 
-            value: stimEffect 
-        });
-        
         const relaxEffect = determineRelaxingEffect(lTheanineLevel);
-        trace.push({ 
-            step: "Relaxation Level Determination", 
-            reason: `L-Theanine: ${lTheanineLevel}`, 
-            adjustment: `Determined as '${relaxEffect}'`, 
-            value: relaxEffect 
-        });
-        
         const compoundProf = determineCompoundProfile(stimEffect, relaxEffect, ratioCat);
-        trace.push({ 
-            step: "Compound Profile Determination", 
-            reason: `Stim: ${stimEffect}, Relax: ${relaxEffect}, Ratio: ${ratioCat}`, 
-            adjustment: `Determined as '${compoundProf}'`, 
-            value: compoundProf 
-        });
-        
         // const durationHint = determineDurationHint(caffeineLevel, lTheanineLevel); // Keep commented out per user code
 
         const analysis = {
@@ -225,18 +172,11 @@ export class CompoundCalculator extends BaseCalculator {
 
         // Generate the revised description
         const description = generateRevisedDescription(levels, analysis, tea?.type);
-        trace.push({ 
-            step: "Description Generation", 
-            reason: "Summarizing compound analysis", 
-            adjustment: "Generated human-readable description", 
-            value: description.substring(0, 50) + "..." // Truncate for trace 
-        });
 
         return {
             description,
             levels,
-            analysis,
-            trace
+            analysis
         };
     }
 

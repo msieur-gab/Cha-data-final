@@ -32,26 +32,6 @@ export class SeasonMatcher {
     }
 
     /**
-     * Helper to add a score to a season with tracing
-     */
-    addSeasonScoreWithTrace(trace, scoreMap, season, score, reasonStep, reasonDetail) {
-        // Validate input season or find closest match
-        const targetSeason = this.findClosestSeason(season);
-        if (!targetSeason) return; // Skip if no valid season found
-        
-        const currentScore = scoreMap.get(targetSeason) || 0;
-        const newScore = currentScore + score;
-        scoreMap.set(targetSeason, newScore);
-        
-        trace.push({
-            step: reasonStep,
-            reason: reasonDetail,
-            adjustment: `${score >= 0 ? '+' : ''}${score} ${targetSeason}`,
-            value: newScore
-        });
-    }
-
-    /**
      * Matches the tea's profile to suitable seasons.
      * @param {object} geographyAnalysis - Analysis from GeographyCalculator
      * @param {object} processingAnalysis - Analysis from ProcessingCalculator
@@ -60,9 +40,6 @@ export class SeasonMatcher {
      * @returns {Object} Results containing recommended seasons and seasonal ranges
      */
     matchSeason(geographyAnalysis = {}, processingAnalysis = {}, teaTypeAnalysis = {}, flavorAnalysis = {}) {
-        // Initialize the trace array
-        let trace = [];
-        
         // --- Extract Relevant Inputs ---
         // Geography/Season Info
         const { harvestSeason = "Unknown", seasonalFlavorProfile = "", qualityIndicator = "Standard" } = geographyAnalysis.season || {};
@@ -76,13 +53,6 @@ export class SeasonMatcher {
 
         // Flavor Info
         const { seasonalAffinityHints: flavorSeasonHints = [], dominantFlavorCategories = [] } = flavorAnalysis;
-        
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw analysis data", 
-            adjustment: `Harvest: ${harvestSeason}, Type tendency: ${typeSeasonalTendency}, Processing: ${processingThermalEffect}, Roast: ${roastLevel}`, 
-            value: `Flavor categories: ${dominantFlavorCategories.join(', ')}`
-        });
 
         // --- Initialize Season Scores ---
         const seasonScores = new Map();
@@ -91,107 +61,82 @@ export class SeasonMatcher {
         this.seasons.forEach(season => {
             seasonScores.set(season, 50); // Base score of 50
         });
-        
-        trace.push({ 
-            step: "Score Initialization", 
-            reason: "Baseline setup", 
-            adjustment: "All seasons initialized with score 50", 
-            value: this.seasons.join(', ')
-        });
 
         // --- Apply Scoring Logic ---
 
         // 1. Base adjustment from Tea Type Tendency
         if (typeSeasonalTendency === "warming") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Autumn", 20, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 30, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Winter", 25, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Winter", 20, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", -10, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", -15, "Tea Type Tendency Adjustment", "Tendency is 'warming'");
+            this.addSeasonScore(seasonScores, "Late Autumn", 20);
+            this.addSeasonScore(seasonScores, "Winter", 30);
+            this.addSeasonScore(seasonScores, "Early Winter", 25);
+            this.addSeasonScore(seasonScores, "Late Winter", 20);
+            this.addSeasonScore(seasonScores, "Spring", -10);
+            this.addSeasonScore(seasonScores, "Summer", -15);
         } else if (typeSeasonalTendency === "cooling") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", 20, "Tea Type Tendency Adjustment", "Tendency is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Summer", 25, "Tea Type Tendency Adjustment", "Tendency is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", 30, "Tea Type Tendency Adjustment", "Tendency is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Summer", 20, "Tea Type Tendency Adjustment", "Tendency is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", -15, "Tea Type Tendency Adjustment", "Tendency is 'cooling'");
+            this.addSeasonScore(seasonScores, "Spring", 20);
+            this.addSeasonScore(seasonScores, "Early Summer", 25);
+            this.addSeasonScore(seasonScores, "Summer", 30);
+            this.addSeasonScore(seasonScores, "Late Summer", 20);
+            this.addSeasonScore(seasonScores, "Winter", -15);
         } else if (typeSeasonalTendency === "neutral-warming") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 15, "Tea Type Tendency Adjustment", "Tendency is 'neutral-warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Winter", 10, "Tea Type Tendency Adjustment", "Tendency is 'neutral-warming'");
+            this.addSeasonScore(seasonScores, "Autumn", 15);
+            this.addSeasonScore(seasonScores, "Early Winter", 10);
         } else if (typeSeasonalTendency === "neutral-cooling") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Spring", 15, "Tea Type Tendency Adjustment", "Tendency is 'neutral-cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Summer", 10, "Tea Type Tendency Adjustment", "Tendency is 'neutral-cooling'");
+            this.addSeasonScore(seasonScores, "Late Spring", 15);
+            this.addSeasonScore(seasonScores, "Early Summer", 10);
         }
 
         // 2. Adjustment from Processing Thermal Effect
-        if (processingThermalEffect === "very warming") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Autumn", 25, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 30, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 35, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Winter", 30, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Winter", 25, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", -20, "Processing Effect Adjustment", "Effect is 'very warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", -25, "Processing Effect Adjustment", "Effect is 'very warming'");
-        } else if (processingThermalEffect === "warming") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 15, "Processing Effect Adjustment", "Effect is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 25, "Processing Effect Adjustment", "Effect is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Winter", 15, "Processing Effect Adjustment", "Effect is 'warming'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", -10, "Processing Effect Adjustment", "Effect is 'warming'");
+        if (processingThermalEffect === "warming" || processingThermalEffect === "very warming") {
+            this.addSeasonScore(seasonScores, "Autumn", 15);
+            this.addSeasonScore(seasonScores, "Winter", 25);
+            this.addSeasonScore(seasonScores, "Late Winter", 15);
+            this.addSeasonScore(seasonScores, "Summer", -10);
         } else if (processingThermalEffect === "cooling") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", 15, "Processing Effect Adjustment", "Effect is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", 25, "Processing Effect Adjustment", "Effect is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Autumn", 10, "Processing Effect Adjustment", "Effect is 'cooling'");
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", -10, "Processing Effect Adjustment", "Effect is 'cooling'");
+            this.addSeasonScore(seasonScores, "Spring", 15);
+            this.addSeasonScore(seasonScores, "Summer", 25);
+            this.addSeasonScore(seasonScores, "Early Autumn", 10);
+            this.addSeasonScore(seasonScores, "Winter", -10);
         }
         
         // Modification 2.1: Add roast level adjustments for seasonality
         if (roastLevel === "Heavy" || roastLevel === "Medium") {
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 25, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Late Autumn", 20, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 25, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Winter", 20, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", -15, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", -20, "Roast Level Adjustment", `Roast level: ${roastLevel}`);
+            this.addSeasonScore(seasonScores, "Autumn", 25);
+            this.addSeasonScore(seasonScores, "Late Autumn", 20);
+            this.addSeasonScore(seasonScores, "Winter", 25);
+            this.addSeasonScore(seasonScores, "Early Winter", 20);
+            this.addSeasonScore(seasonScores, "Spring", -15);
+            this.addSeasonScore(seasonScores, "Summer", -20);
         }
         
         // Modification 2.2: Add light oolong with floral flavors adjustments
         if ((roastLevel === "Minimal" || roastLevel === "Light" || roastLevel === "None") && 
             dominantFlavorCategories.includes("Floral")) {
-            const reason = `Light roast level (${roastLevel}) with Floral notes`;
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", 25, "Flavor-Roast Combination Adjustment", reason);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Spring", 20, "Flavor-Roast Combination Adjustment", reason);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", 20, "Flavor-Roast Combination Adjustment", reason);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Early Summer", 25, "Flavor-Roast Combination Adjustment", reason);
-            this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", -10, "Flavor-Roast Combination Adjustment", reason);
+            this.addSeasonScore(seasonScores, "Spring", 25);
+            this.addSeasonScore(seasonScores, "Early Spring", 20);
+            this.addSeasonScore(seasonScores, "Summer", 20);
+            this.addSeasonScore(seasonScores, "Early Summer", 25);
+            this.addSeasonScore(seasonScores, "Winter", -10);
         }
 
         // 3. Adjustment from Flavor Seasonal Hints
-        if (flavorSeasonHints.length > 0) {
-            trace.push({ 
-                step: "Flavor Seasonal Hints", 
-                reason: "Processing flavor hints", 
-                adjustment: `Found ${flavorSeasonHints.length} seasonal hints`, 
-                value: flavorSeasonHints.join(', ')
-            });
-        }
-        
         flavorSeasonHints.forEach(hint => {
             // Handle direct season mentions
             this.seasons.forEach(season => {
                 if (season.toLowerCase().includes(hint.toLowerCase())) {
-                    this.addSeasonScoreWithTrace(trace, seasonScores, season, 15, "Flavor Hint Match", `Flavor hint '${hint}' matches season '${season}'`);
+                    this.addSeasonScore(seasonScores, season, 15);
                 }
             });
             
             // Handle broader terms
             if (hint.toLowerCase().includes('warm weather')) {
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", 15, "Flavor Hint Interpretation", `Hint '${hint}' suggests warm weather preferences`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Late Spring", 10, "Flavor Hint Interpretation", `Hint '${hint}' suggests warm weather preferences`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Early Autumn", 10, "Flavor Hint Interpretation", `Hint '${hint}' suggests warm weather preferences`);
+                this.addSeasonScore(seasonScores, "Summer", 15);
+                this.addSeasonScore(seasonScores, "Late Spring", 10);
+                this.addSeasonScore(seasonScores, "Early Autumn", 10);
             } else if (hint.toLowerCase().includes('cool weather')) {
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 15, "Flavor Hint Interpretation", `Hint '${hint}' suggests cool weather preferences`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 15, "Flavor Hint Interpretation", `Hint '${hint}' suggests cool weather preferences`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Early Spring", 10, "Flavor Hint Interpretation", `Hint '${hint}' suggests cool weather preferences`);
+                this.addSeasonScore(seasonScores, "Autumn", 15);
+                this.addSeasonScore(seasonScores, "Winter", 15);
+                this.addSeasonScore(seasonScores, "Early Spring", 10);
             }
         });
 
@@ -200,7 +145,7 @@ export class SeasonMatcher {
             // Boost the harvest season itself
             this.seasons.forEach(season => {
                 if (season.toLowerCase().includes(harvestSeason.toLowerCase())) {
-                    this.addSeasonScoreWithTrace(trace, seasonScores, season, 20, "Harvest Season Boost", `Season matches harvest season: ${harvestSeason}`);
+                    this.addSeasonScore(seasonScores, season, 20);
                 }
             });
             
@@ -210,8 +155,8 @@ export class SeasonMatcher {
                 const prevSeasonIndex = (harvestIndex - 1 + this.seasons.length) % this.seasons.length;
                 const nextSeasonIndex = (harvestIndex + 1) % this.seasons.length;
                 
-                this.addSeasonScoreWithTrace(trace, seasonScores, this.seasons[prevSeasonIndex], 10, "Adjacent Season Boost", `Previous season to harvest season: ${harvestSeason}`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, this.seasons[nextSeasonIndex], 10, "Adjacent Season Boost", `Next season to harvest season: ${harvestSeason}`);
+                this.addSeasonScore(seasonScores, this.seasons[prevSeasonIndex], 10);
+                this.addSeasonScore(seasonScores, this.seasons[nextSeasonIndex], 10);
             }
         }
 
@@ -220,65 +165,27 @@ export class SeasonMatcher {
             const profile = seasonalFlavorProfile.toLowerCase();
             
             if (profile.includes('robust') || profile.includes('malty') || profile.includes('deep')) {
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Autumn", 10, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches autumn characteristics`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Winter", 10, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches winter characteristics`);
+                this.addSeasonScore(seasonScores, "Autumn", 10);
+                this.addSeasonScore(seasonScores, "Winter", 10);
             }
             if (profile.includes('fresh') || profile.includes('delicate') || profile.includes('floral')) {
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Spring", 10, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches spring characteristics`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Early Summer", 10, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches early summer characteristics`);
+                this.addSeasonScore(seasonScores, "Spring", 10);
+                this.addSeasonScore(seasonScores, "Early Summer", 10);
             }
             if (profile.includes('bright') || profile.includes('fruity') || profile.includes('sweet')) {
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Late Spring", 8, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches late spring characteristics`);
-                this.addSeasonScoreWithTrace(trace, seasonScores, "Summer", 12, "Flavor Profile Match", `Profile '${seasonalFlavorProfile}' matches summer characteristics`);
+                this.addSeasonScore(seasonScores, "Late Spring", 8);
+                this.addSeasonScore(seasonScores, "Summer", 12);
             }
         }
 
         // --- Process Results ---
-        // Log raw scores before normalization
-        const rawScoresArray = Array.from(seasonScores.entries()).map(([season, score]) => `${season}: ${score}`);
-        trace.push({ 
-            step: "Raw Scores", 
-            reason: "Before normalization", 
-            adjustment: "Calculated raw scores for each season", 
-            value: rawScoresArray.join(', ')
-        });
-        
         const normalizedScores = this.normalizeSeasonScores(seasonScores);
-        trace.push({ 
-            step: "Score Normalization", 
-            reason: "Converting to 0-100 scale", 
-            adjustment: "Normalized all scores", 
-            value: Object.entries(normalizedScores).map(([season, score]) => `${season}: ${score}`).join(', ')
-        });
-        
         const recommendedSeasons = this.getRecommendedSeasons(normalizedScores);
-        trace.push({ 
-            step: "Recommendation Generation", 
-            reason: "Finding best seasons", 
-            adjustment: `Selected ${recommendedSeasons.length} recommended seasons`, 
-            value: recommendedSeasons.map(item => `${item.name}: ${item.score}`).join(', ')
-        });
-        
         const seasonalRanges = this.identifySeasonalRanges(normalizedScores);
-        if (seasonalRanges.length > 0) {
-            trace.push({ 
-                step: "Range Identification", 
-                reason: "Finding continuous seasonal ranges", 
-                adjustment: `Identified ${seasonalRanges.length} continuous ranges`, 
-                value: seasonalRanges.map(range => `${range.start} to ${range.end} (${range.score})`).join(', ')
-            });
-        }
 
         // For legacy compatibility, also provide simplified season recommendations
         const simplifiedScores = this.generateSimplifiedScores(normalizedScores);
         const simplifiedRecommended = this.getSimplifiedRecommendations(simplifiedScores);
-        
-        trace.push({ 
-            step: "Simplified Results", 
-            reason: "Generating simplified season scores", 
-            adjustment: "Mapped detailed seasons to simple seasons", 
-            value: Object.entries(simplifiedScores).map(([season, score]) => `${season}: ${score}`).join(', ')
-        });
 
         return {
             recommendations: normalizedScores,
@@ -290,8 +197,7 @@ export class SeasonMatcher {
                 recommended: simplifiedRecommended
             },
             // Direct recommended property for even better backwards compatibility
-            recommended: simplifiedRecommended,
-            trace
+            recommended: simplifiedRecommended
         };
     }
     

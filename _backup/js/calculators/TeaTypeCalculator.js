@@ -63,53 +63,20 @@ export class TeaTypeCalculator extends BaseCalculator {
 
     // Override infer method from BaseCalculator
     infer(tea) {
-        // Initialize the trace array
-        let trace = [];
-        
         const teaType = tea?.type?.toLowerCase() || 'unknown';
         const subType = tea?.subType?.toLowerCase() || '';
 
-        trace.push({ 
-            step: "Type Identification", 
-            reason: "Input tea data", 
-            adjustment: `Identified Type: ${teaType}${subType ? ', SubType: ' + subType : ''}`,
-            value: `${teaType}${subType ? '/' + subType : ''}`
-        });
-
         if (teaType === 'unknown') {
-            trace.push({ 
-                step: "Type Validation", 
-                reason: "Missing type data", 
-                adjustment: "Using default values", 
-                value: "No tea type identified" 
-            });
-            
             return {
                 teaType: 'unknown',
                 subType: '',
                 description: 'No tea type data available.',
-                analysis: {}, // Return empty analysis for unknown type
-                trace
+                analysis: {} // Return empty analysis for unknown type
             };
         }
 
         // Get the relevant data from reference (TeaTypeDescriptors.js)
         const typeData = getTypeData(teaType, subType);
-        
-        // Record which data source was used
-        let dataSource = "Primary Type";
-        if (subType && teaTypeDescriptors[teaType]?.subTypes?.[subType]) {
-            dataSource = "SubType Override";
-        } else if (teaType.includes('-') && teaTypeDescriptors[teaType.split('-')[0]]?.base) {
-            dataSource = "Composite Type";
-        }
-        
-        trace.push({ 
-            step: "Descriptor Lookup", 
-            reason: `Looked up '${teaType}'${subType ? '/' + subType : ''} in TeaTypeDescriptors`, 
-            adjustment: `Found data source: ${dataSource}`, 
-            value: Object.keys(typeData).join(', ')
-        });
 
         // Prepare the analysis object
         const analysis = {
@@ -121,34 +88,12 @@ export class TeaTypeCalculator extends BaseCalculator {
             baseActivityHints: typeData.baseActivityHints,
             commonProcessing: typeData.commonProcessing // Good for context
         };
-        
-        trace.push({ 
-            step: "Analysis Extraction", 
-            reason: "Extracted from typeData", 
-            adjustment: `Typical Caffeine: ${analysis.typicalCaffeine}, Theanine: ${analysis.typicalTheanine}`, 
-            value: `Dominant flavors: ${analysis.dominantFlavorCategories?.join(', ') || 'None'}`
-        });
-        
-        trace.push({ 
-            step: "Activity Association", 
-            reason: "Type characteristic", 
-            adjustment: `Time preference: ${analysis.baseTimeOfDay?.join(', ') || 'None'}`, 
-            value: `Activities: ${analysis.baseActivityHints?.join(', ') || 'None'}`
-        });
-        
-        trace.push({ 
-            step: "Processing Methods", 
-            reason: "Type characteristic", 
-            adjustment: `Common processing methods identified`, 
-            value: `Methods: ${analysis.commonProcessing?.join(', ') || 'None'}`
-        });
 
         return {
             teaType,
             subType,
             description: typeData.description, // Use description from reference data
-            analysis, // This object holds the characteristics/tendencies
-            trace
+            analysis // This object holds the characteristics/tendencies
         };
     }
 

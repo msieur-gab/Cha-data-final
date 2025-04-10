@@ -11,37 +11,38 @@ export const flavorInfluences = {
             foodPairingHints: ["Light Desserts", "Steamed Vegetables", "White Fish", "Rice Dishes"],
             seasonalAffinityHints: ["Spring", "Summer"],
             activityHints: ["Relaxation", "Social", "Evening", "Unwinding"],
-            associatedFlavors: ["jasmine", "honey"]
+            associatedFlavors: ["sweet", "perfumed", "honey"]
         },
         rose: {
             foodPairingHints: ["Pastries", "Fruit Salads", "Middle Eastern Sweets", "Yogurt"],
             seasonalAffinityHints: ["Spring", "Summer"],
             activityHints: ["Relaxation", "Social", "Romantic"],
-            associatedFlavors: ["rose", "honey"]
+            associatedFlavors: ["sweet", "perfumed", "honey"]
         },
         orchid: {
             foodPairingHints: ["Creamy Desserts", "Light Cakes", "Tropical Fruit", "Subtle Pastries"],
             seasonalAffinityHints: ["Spring", "Anytime (Subtle)"],
             activityHints: ["Relaxation", "Contemplative", "Social"],
-            associatedFlavors: ["orchid", "honey"]
+            associatedFlavors: ["sweet", "perfumed", "honey", "creamy"]
         },
         lilac: {
             foodPairingHints: ["Spring Salads", "Light Fruit Tarts", "Madeleines"],
             seasonalAffinityHints: ["Spring"],
             activityHints: ["Uplifting", "Social", "Creative"],
-            associatedFlavors: ["lilac", "floral"]
+            associatedFlavors: ["sweet", "perfumed", "spring-like"]
         },
         osmanthus: {
             foodPairingHints: ["Apricot Pastries", "Moon Cakes", "Jellies", "Light Cookies"],
             seasonalAffinityHints: ["Autumn", "Spring"],
             activityHints: ["Uplifting", "Social", "Relaxation"],
-            associatedFlavors: ["apricot", "osmanthus", "honey"]
+            associatedFlavors: ["apricot", "sweet", "honey"]
         },
+        // Add Elderflower, Honeysuckle etc. similarly
         honeysuckle: {
              foodPairingHints: ["Fruit Salads", "Light Cakes", "Sorbets"],
              seasonalAffinityHints: ["Spring", "Summer"],
              activityHints: ["Uplifting", "Relaxation", "Social"],
-             associatedFlavors: ["honeysuckle", "nectar"]
+             associatedFlavors: ["sweet", "nectar", "floral"]
          }
     },
 
@@ -50,25 +51,20 @@ export const flavorInfluences = {
             foodPairingHints: ["Cheese Plates", "Pork Dishes", "Oatmeal", "Light Cakes"],
             seasonalAffinityHints: ["Autumn", "Spring"],
             activityHints: ["Social", "Afternoon Break", "Gentle Energy"],
-            associatedFlavors: ["apple", "red apple", "green apple"]
+            associatedFlavors: ["sweet", "crisp", "light"]
         },
+        // Add Pear, Peach, Apricot, Citrus, Berry, Tropical, Stone Fruit etc.
         citrus: {
              foodPairingHints: ["Seafood", "Salads", "Chicken", "Light Desserts"],
              seasonalAffinityHints: ["Summer", "Spring"],
              activityHints: ["Energy", "Focus", "Morning", "Refreshment"],
-             associatedFlavors: ["lemon", "orange", "grapefruit", "lime", "citrus peel"]
+             associatedFlavors: ["bright", "tangy", "zesty"]
          },
         berry: {
              foodPairingHints: ["Desserts", "Yogurt", "Breakfast Foods", "Salads"],
              seasonalAffinityHints: ["Summer", "Spring"],
              activityHints: ["Energy", "Social", "Uplifting"],
-             associatedFlavors: ["strawberry", "raspberry", "blueberry", "blackberry"]
-         },
-        dark_fruits: {
-             foodPairingHints: ["Dark Chocolate", "Game Meats", "Roasted Meats", "Strong Cheese", "Spiced Desserts", "Rich Stews", "Red Wine Sauces"],
-             seasonalAffinityHints: ["Autumn", "Winter"],
-             activityHints: ["Evening", "Social", "Contemplative", "Relaxation"],
-             associatedFlavors: ["raisin", "prune", "fig", "blackberry", "black currant", "cherry", "plum"]
+             associatedFlavors: ["sweet", "tangy", "bright"]
          }
     },
 
@@ -79,21 +75,14 @@ export const flavorInfluences = {
             seasonalAffinityHints: ["Spring", "Summer"],
             activityHints: ["Focus", "Cleansing", "Refreshment"]
         },
-
-        grassy: {
-            foodPairingHints: ["Fresh Salads", "Light Vegetable Dishes", "White Fish"],
-            seasonalAffinityHints: ["Spring", "Early Summer"],
-            activityHints: ["Morning", "Focus", "Cleansing"],
-            associatedFlavors: ["fresh cut grass", "hay", "green", 'vegetal',"vegetable"]
-          },
-
         leafy: { // Specific notes can override or add to defaults
             foodPairingHints: ["Salads", "Steamed Greens", "Light Soups"],
             seasonalAffinityHints: ["Spring"],
             activityHints: ["Focus", "Detox/Cleansing"],
             associatedFlavors: ['spinach', 'kale', 'lettuce', 'grass']
         },
-        herbaceous: {
+        // Add Cruciferous, Herbaceous etc.
+         herbaceous: {
              foodPairingHints: ["Grilled Vegetables", "Savory Pastries", "Cheese", "Soups"],
              seasonalAffinityHints: ["Spring", "Summer"],
              activityHints: ["Focus", "Refreshment", "Calm (Mint)"],
@@ -106,57 +95,50 @@ export const flavorInfluences = {
             foodPairingHints: ["Baked Goods", "Cheese", "Roasted Vegetables", "Light Meats", "Roasted Nuts", "Hard Cheese"],
             seasonalAffinityHints: ["Autumn", "Winter"],
             activityHints: ["Warming", "Comfort", "Relaxation", "Focus"],
-            associatedFlavors: ['almond', 'hazelnut', 'walnut', 'chestnut', 'creamy', 'peanut']
+            associatedFlavors: ['almond', 'hazelnut', 'walnut', 'chestnut', 'peanut']
         },
         toasted: {
             foodPairingHints: ["Breakfast Foods (Toast, Grains)", "Roasted Nuts", "Comfort Food", "Baked Goods", "Grilled Meats"],
             seasonalAffinityHints: ["Autumn", "Winter"],
             activityHints: ["Warming", "Comfort", "Routine"],
-            associatedFlavors: ['bread', 'grain', 'barley', 'rice', 'toast']
+            associatedFlavors: ['Bread', 'Grain', 'Barley', 'Rice']
         }
     },
 
     spicy: {
         pungent: { // Warming spices
-            foodPairingHints: ["Rich Desserts", "Spiced Cakes", "Curries", "Stews", "Spiced Foods"],
+            foodPairingHints: ["Rich Desserts", "Spiced Cakes", "Curries", "Stews"],
             seasonalAffinityHints: ["Autumn", "Winter"],
             activityHints: ["Warming", "Energy", "Digestive"],
-            associatedFlavors: ['pepper', 'ginger', 'cinnamon', 'clove', 'anise', 'licorice']
+            associatedFlavors: ['Pepper', 'Ginger', 'Cinnamon', 'Clove', 'Anise', 'Licorice']
         },
         cooling: { // e.g., Mint
             foodPairingHints: ["Fruit Salads", "Chocolate", "Lamb Dishes", "Yogurt"],
             seasonalAffinityHints: ["Summer", "Spring"],
             activityHints: ["Refreshment", "Focus", "Digestive"],
-            associatedFlavors: ['menthol', 'camphor', 'mint']
+            associatedFlavors: ['Menthol', 'Camphor', 'Mint']
         }
     },
 
     sweet: {
-        caramel: {
-            foodPairingHints: ["Desserts", "Roasted Foods", "Cheese", "Coffee", "Dark Chocolate", "Baked Goods", 
-                              "Nuts", "Apples", "Ice Cream", "Spiced Desserts", "Cream Desserts", "Roasted Nuts", 
-                              "Roasted Meats"],
+        caramelized: {
+            foodPairingHints: ["Desserts", "Roasted Foods", "Cheese", "Coffee", "Dark Chocolate", "Baked Goods"],
             seasonalAffinityHints: ["Autumn", "Winter"],
-            activityHints: ["Comfort", "Warming", "Relaxation", "Evening", "Social"],
-            associatedFlavors: ['caramel', 'brown sugar', 'toffee', 'burnt sugar', 'molasses']
+            activityHints: ["Comfort", "Warming", "Relaxation", "Evening"],
+            associatedFlavors: ['Honey', 'Caramel', 'Brown Sugar', 'Molasses']
         },
-        sweet: { // Add this entry if 'sweet' is a possible input flavor
-            foodPairingHints: ["Light Desserts", "Fruits", "Pastries", "Yogurt"],
-            seasonalAffinityHints: ["Any Season"],
-            activityHints: ["Comfort", "Relaxation", "Social", "Treat"],
-            associatedFlavors: ["sugary", "honey", "malt", "caramel"] // Examples
-        },
+        // Add Vanilla, Chocolate, Malt etc.
         chocolate: {
              foodPairingHints: ["Desserts", "Berries", "Coffee", "Nuts", "Dark Chocolate", "Baked Goods", "Roasted Nuts"],
              seasonalAffinityHints: ["Winter", "Autumn"],
              activityHints: ["Comfort", "Indulgence", "Relaxation"],
-             associatedFlavors: ['cocoa', 'dark chocolate', 'chocolate']
+             associatedFlavors: ['cocoa', 'dark chocolate']
          },
          malt: {
              foodPairingHints: ["Breakfast Foods", "Baked Goods", "Biscuits", "Caramel", "Hard Cheese"],
              seasonalAffinityHints: ["Autumn", "Winter"],
              activityHints: ["Warming", "Comfort", "Routine"],
-             associatedFlavors: ["malt", "cereal", "grain"]
+             associatedFlavors: ["sweet", "cereal", "warm"]
          }
     },
 
@@ -167,60 +149,56 @@ export const flavorInfluences = {
             activityHints: ["Grounding (Physical)", "Contemplative", "Warming", "Digestive"]
         },
         soil: { 
-            foodPairingHints: ["Mushrooms", "Root Vegetables", "Hearty Soups", "Dark Meats", "Grilled Meats"],
-            seasonalAffinityHints: ["Autumn", "Winter"],
-            activityHints: ["Grounding", "Contemplative", "Warming"],
-            associatedFlavors: ['petrichor', 'loam', 'forest floor', 'wet stone', 'soil', 'earth']
+            associatedFlavors: ['petrichor', 'loam', 'forest floor'],
+            foodPairingHints: ["Mushrooms", "Root Vegetables", "Hearty Soups", "Dark Meats", "Grilled Meats"]
         },
         mineral: {
              foodPairingHints: ["Seafood", "Shellfish", "Light Cheese", "Oysters", "Hard Cheese"],
              seasonalAffinityHints: ["Spring", "Summer", "Autumn"], // Can be year-round
              activityHints: ["Focus", "Refreshment", "Contemplative"],
-             associatedFlavors: ['mineral', 'flint', 'slate', 'chalk']
+             associatedFlavors: ['Wet Stone', 'Flint', 'Slate']
         },
+        // Add Fungal, Aged etc.
         aged: { // Flavors from aging, like in Puerh
              foodPairingHints: ["Rich Foods", "Game Meats", "Dark Chocolate", "Mushrooms", "Root Vegetables", "Spiced Foods"],
              seasonalAffinityHints: ["Autumn", "Winter"],
              activityHints: ["Contemplative", "Digestive", "Warming"],
-             associatedFlavors: ['leather', 'autumn leaves', 'camphor', 'moss', 'aged wood', 'stored grain']
+             associatedFlavors: ['Forest Floor', 'Leather', 'Autumn Leaves', 'Camphor']
          }
     },
 
     woody: {
         _categoryDefaults: {
-            foodPairingHints: ["Smoked Foods", "Grilled Meats", "Cheese", "Mushrooms", "Hard Cheese", "Root Vegetables", 
-                              "Dark Chocolate", "Roasted Nuts", "Rich Stews"],
+            foodPairingHints: ["Smoked Foods", "Grilled Meats", "Cheese", "Mushrooms", "Hard Cheese", "Root Vegetables"],
             seasonalAffinityHints: ["Autumn", "Winter"],
-            activityHints: ["Grounding (Physical)", "Contemplative", "Warming", "Relaxation", "Evening"],
-            associatedFlavors: ["wood", "bark", "oak", "pine", "forest"]
+            activityHints: ["Grounding (Physical)", "Contemplative", "Warming"]
         },
+        // Add specific woods like Oak, Pine, Cedar, Sandalwood, Bamboo...
         cedar: {
             foodPairingHints: ["Smoked Salmon", "Hard Cheese", "Game Meats", "Grilled Meats"],
             seasonalAffinityHints: ["Autumn", "Winter"],
             activityHints: ["Focus", "Contemplative"],
-            associatedFlavors: ["cedar", "pine"]
+            associatedFlavors: ["Aromatic", "Clean", "Dry"]
         }
     },
 
     roasted: {
         _categoryDefaults: {
-            foodPairingHints: ["Grilled/Roasted Meats", "Root Vegetables", "Comfort Foods", "Chocolate", "Dark Chocolate", 
-                              "Roasted Nuts", "Hard Cheese", "Spiced Foods", "Baked Goods", "Rich Stews"],
+            foodPairingHints: ["Grilled/Roasted Meats", "Root Vegetables", "Comfort Foods", "Chocolate", "Dark Chocolate", "Roasted Nuts", "Hard Cheese", "Spiced Foods", "Baked Goods"],
             seasonalAffinityHints: ["Autumn", "Winter"],
-            activityHints: ["Warming", "Comfort", "Evening", "Relaxation", "Contemplative"],
-            associatedFlavors: ["roasted", "charred", "toasted", "burnt"]
+            activityHints: ["Warming", "Comfort", "Evening", "Relaxation"]
         },
         smoky: { // Lapsang Souchong etc.
             foodPairingHints: ["Smoked Foods", "BBQ", "Strong Cheese", "Bacon", "Grilled Meats", "Dark Chocolate"],
             seasonalAffinityHints: ["Winter", "Autumn"],
             activityHints: ["Warming", "Contemplative", "Bold Experience"],
-            associatedFlavors: ['smoke', 'bonfire', 'tobacco', 'burnt', 'pine resin']
+            associatedFlavors: ['Bonfire', 'Tobacco', 'Burnt', 'Pine Resin']
          },
-         coffee_chicory: { // Coffee-like notes etc.
+         nutty: { // Coffee-like notes etc.
              foodPairingHints: ["Desserts", "Baked Goods", "Cheese", "Roasted Nuts", "Dark Chocolate"],
              seasonalAffinityHints: ["Autumn", "Winter"],
              activityHints: ["Warming", "Comfort", "Focus"],
-             associatedFlavors: ['coffee', 'chicory', 'roasted nuts', 'espresso']
+             associatedFlavors: ['Roasted Nuts', 'Coffee', 'Chicory']
          }
     },
 
@@ -229,13 +207,13 @@ export const flavorInfluences = {
             foodPairingHints: ["Seafood", "Sushi", "Rice Dishes", "Light vegetables"],
             seasonalAffinityHints: ["Spring", "Summer"],
             activityHints: ["Focus", "Refreshment", "Cleansing"],
-            associatedFlavors: ['seaweed', 'nori', 'brine', 'oceanic', 'sea salt']
+            associatedFlavors: ['seaweed', 'nori', 'brine', 'oceanic']
         },
         meaty: { // Brothy, savory
             foodPairingHints: ["Savory Soups", "Stews", "Mushrooms", "Rich Dishes"],
             seasonalAffinityHints: ["Autumn", "Winter"],
             activityHints: ["Warming", "Comfort", "Satiating"],
-            associatedFlavors: ['savory', 'broth', 'mushroom', 'umami']
+            associatedFlavors: ['Savory', 'Meaty', 'Broth', 'Mushroom']
         }
     },
 

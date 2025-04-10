@@ -90,48 +90,23 @@ export class GeographyCalculator extends BaseCalculator {
 
     // Override infer method from BaseCalculator
     infer(tea) {
-        // Initialize the trace array
-        let trace = [];
-        
         const geoInput = tea?.geography;
         if (!geoInput || typeof geoInput !== 'object' || Object.keys(geoInput).length === 0) {
-            trace.push({ 
-                step: "Input Validation", 
-                reason: "Missing geography data", 
-                adjustment: "Using default values", 
-                value: "No geographical data available" 
-            });
-            
             return {
                 description: 'No geographical data available.',
                 location: {},
                 climate: {},
                 season: {},
-                analysis: {},
-                trace
+                analysis: {}
             };
         }
 
         const { altitude, humidity, latitude, longitude, temperature, solarRadiation, harvestMonth } = geoInput;
-        
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw tea geography data", 
-            adjustment: "Extracting geographical parameters", 
-            value: `Lat: ${latitude}, Lon: ${longitude}, Alt: ${altitude}, Humidity: ${humidity}, Temp: ${temperature}, Radiation: ${solarRadiation}, Month: ${harvestMonth}` 
-        });
 
         // --- Location Analysis ---
         const regionInfo = (typeof latitude === 'number' && typeof longitude === 'number')
             ? identifyRegionFromCoordinates(latitude, longitude) // Assumes this returns { region, country, subregion, description, influenceNotes: [] }
             : { region: tea.origin || "Unknown", country: "Unknown", subregion: null, description: "Region determined by origin string.", influenceNotes: [] };
-
-        trace.push({ 
-            step: "Region Identification", 
-            reason: `Lat: ${latitude}, Lon: ${longitude}`, 
-            adjustment: `Identified Region: ${regionInfo.region}, Country: ${regionInfo.country}${regionInfo.subregion ? ', Subregion: ' + regionInfo.subregion : ''}`, 
-            value: regionInfo.description 
-        });
 
         const location = {
             latitude: latitude ?? null,
@@ -144,44 +119,10 @@ export class GeographyCalculator extends BaseCalculator {
 
         // --- Climate Analysis ---
         const altitudeCategory = categorizeMeasurement(altitude, elevationLevels);
-        trace.push({ 
-            step: "Altitude Categorization", 
-            reason: `Altitude: ${altitude}`, 
-            adjustment: `Categorized as: ${altitudeCategory}`, 
-            value: altitudeCategory 
-        });
-        
         const latitudeZone = categorizeMeasurement(Math.abs(latitude), latitudeZones);
-        trace.push({ 
-            step: "Latitude Zone Determination", 
-            reason: `Latitude: ${latitude}`, 
-            adjustment: `Categorized as: ${latitudeZone}`, 
-            value: latitudeZone 
-        });
-        
         const humidityCategory = categorizeMeasurement(humidity, humidityLevels);
-        trace.push({ 
-            step: "Humidity Categorization", 
-            reason: `Humidity: ${humidity}`, 
-            adjustment: `Categorized as: ${humidityCategory}`, 
-            value: humidityCategory 
-        });
-        
         const temperatureCategory = categorizeMeasurement(temperature, temperatureLevels);
-        trace.push({ 
-            step: "Temperature Categorization", 
-            reason: `Temperature: ${temperature}`, 
-            adjustment: `Categorized as: ${temperatureCategory}`, 
-            value: temperatureCategory 
-        });
-        
         const solarRadiationCategory = categorizeMeasurement(solarRadiation, solarRadiationLevels);
-        trace.push({ 
-            step: "Solar Radiation Categorization", 
-            reason: `Solar Radiation: ${solarRadiation}`, 
-            adjustment: `Categorized as: ${solarRadiationCategory}`, 
-            value: solarRadiationCategory 
-        });
 
         const climate = {
             altitude: altitude ?? null,
@@ -197,22 +138,8 @@ export class GeographyCalculator extends BaseCalculator {
 
         // --- Season Analysis ---
         const harvestSeason = getSeasonName(harvestMonth, latitude);
-        trace.push({ 
-            step: "Season Determination", 
-            reason: `Month: ${harvestMonth}, Lat: ${latitude}`, 
-            adjustment: `Determined Season: ${harvestSeason}`, 
-            value: harvestSeason 
-        });
-        
         const hemisphere = (typeof latitude === 'number') ? (latitude >= 0 ? 'Northern' : 'Southern') : 'Unknown';
         const seasonalProfileData = getSeasonalProfileData(harvestSeason);
-        
-        trace.push({ 
-            step: "Seasonal Profile Lookup", 
-            reason: `Season: ${harvestSeason}`, 
-            adjustment: `Quality: ${seasonalProfileData.qualityIndicator}`, 
-            value: seasonalProfileData.flavorProfileDescription 
-        });
 
         const season = {
             harvestMonth: harvestMonth ?? null,
@@ -229,15 +156,8 @@ export class GeographyCalculator extends BaseCalculator {
         let compoundTendencyNotes = [];
 
         // Helper to add notes without duplicates
-        const addNotes = (targetArray, notesToAdd, category, sourceDesc) => {
-            if (Array.isArray(notesToAdd) && notesToAdd.length > 0) {
-                trace.push({ 
-                    step: "Influence Note Aggregation", 
-                    reason: `Category: ${category}`, 
-                    adjustment: `Added ${targetArray === flavorInfluenceNotes ? 'flavor' : targetArray === mouthFeelInfluenceNotes ? 'mouthfeel' : 'compound'} notes from ${sourceDesc}`, 
-                    value: notesToAdd.join(', ') 
-                });
-                
+        const addNotes = (targetArray, notesToAdd) => {
+            if (Array.isArray(notesToAdd)) {
                 notesToAdd.forEach(note => {
                     if (!targetArray.includes(note)) targetArray.push(note);
                 });
@@ -245,27 +165,27 @@ export class GeographyCalculator extends BaseCalculator {
         };
 
         // Add notes from reference data based on categories
-        addNotes(flavorInfluenceNotes, elevationLevels[altitudeCategory]?.flavorInfluence, altitudeCategory, 'elevationLevels');
-        addNotes(mouthFeelInfluenceNotes, elevationLevels[altitudeCategory]?.mouthFeelInfluence, altitudeCategory, 'elevationLevels'); // Assuming reference data is updated
-        addNotes(compoundTendencyNotes, elevationLevels[altitudeCategory]?.compoundTendency, altitudeCategory, 'elevationLevels');
+        addNotes(flavorInfluenceNotes, elevationLevels[altitudeCategory]?.flavorInfluence);
+        addNotes(mouthFeelInfluenceNotes, elevationLevels[altitudeCategory]?.mouthFeelInfluence); // Assuming reference data is updated
+        addNotes(compoundTendencyNotes, elevationLevels[altitudeCategory]?.compoundTendency);
 
-        addNotes(flavorInfluenceNotes, latitudeZones[latitudeZone]?.flavorInfluence, latitudeZone, 'latitudeZones');
+        addNotes(flavorInfluenceNotes, latitudeZones[latitudeZone]?.flavorInfluence);
         // ... add mouthfeel/compound notes for latitude if defined ...
 
-        addNotes(flavorInfluenceNotes, humidityLevels[humidityCategory]?.flavorInfluence, humidityCategory, 'humidityLevels');
-        addNotes(mouthFeelInfluenceNotes, humidityLevels[humidityCategory]?.mouthFeelInfluence, humidityCategory, 'humidityLevels');
+        addNotes(flavorInfluenceNotes, humidityLevels[humidityCategory]?.flavorInfluence);
+        addNotes(mouthFeelInfluenceNotes, humidityLevels[humidityCategory]?.mouthFeelInfluence);
         // ... compound notes ...
 
-        addNotes(flavorInfluenceNotes, temperatureLevels[temperatureCategory]?.flavorInfluence, temperatureCategory, 'temperatureLevels');
+        addNotes(flavorInfluenceNotes, temperatureLevels[temperatureCategory]?.flavorInfluence);
         // ... mouthfeel/compound notes ...
 
-        addNotes(flavorInfluenceNotes, solarRadiationLevels[solarRadiationCategory]?.flavorInfluence, solarRadiationCategory, 'solarRadiationLevels');
-        addNotes(compoundTendencyNotes, solarRadiationLevels[solarRadiationCategory]?.compoundTendency, solarRadiationCategory, 'solarRadiationLevels');
+        addNotes(flavorInfluenceNotes, solarRadiationLevels[solarRadiationCategory]?.flavorInfluence);
+        addNotes(compoundTendencyNotes, solarRadiationLevels[solarRadiationCategory]?.compoundTendency);
         // ... mouthfeel notes ...
 
         // Add notes from specific region data if available
-        addNotes(flavorInfluenceNotes, regionInfo.influenceNotes, regionInfo.region, 'regionInfo'); // Assuming identifyRegion returns influenceNotes array
-        addNotes(flavorInfluenceNotes, regionCharacteristics[regionInfo.region.toLowerCase()]?.flavorNotes, regionInfo.region, 'regionCharacteristics'); // Add more specific notes if available
+        addNotes(flavorInfluenceNotes, regionInfo.influenceNotes); // Assuming identifyRegion returns influenceNotes array
+        addNotes(flavorInfluenceNotes, regionCharacteristics[regionInfo.region.toLowerCase()]?.flavorNotes); // Add more specific notes if available
 
 
         const analysis = {
@@ -274,31 +194,16 @@ export class GeographyCalculator extends BaseCalculator {
             compoundTendencyNotes
             // Seasonal impacts are part of the 'season' object now
         };
-        
-        trace.push({ 
-            step: "Analysis Aggregation", 
-            reason: "Combining all influences", 
-            adjustment: `Total flavor notes: ${flavorInfluenceNotes.length}, mouthfeel notes: ${mouthFeelInfluenceNotes.length}, compound notes: ${compoundTendencyNotes.length}`, 
-            value: `Sample flavor notes: ${flavorInfluenceNotes.slice(0, 3).join(', ')}${flavorInfluenceNotes.length > 3 ? '...' : ''}` 
-        });
 
         // --- Generate Description ---
         const description = this.generateGeoDescription(location, climate, season, analysis, tea?.type);
-        
-        trace.push({ 
-            step: "Description Generation", 
-            reason: "Summarizing geography analysis", 
-            adjustment: "Generated human-readable description", 
-            value: description.substring(0, 50) + "..." // Truncate for trace
-        });
 
         return {
             description,
             location,
             climate,
             season,
-            analysis,
-            trace
+            analysis
         };
     }
 

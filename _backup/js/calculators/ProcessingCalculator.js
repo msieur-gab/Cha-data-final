@@ -48,47 +48,22 @@ export class ProcessingCalculator extends BaseCalculator {
 
     // Override infer method from BaseCalculator
     infer(tea) {
-        // Initialize the trace array
-        let trace = [];
-        
         const processingInput = tea?.processing || {}; // Check new structure first
         const processingMethods = Array.isArray(processingInput.methods) ? processingInput.methods : (Array.isArray(tea?.processingMethods) ? tea.processingMethods : []);
         const oxidationLevel = typeof processingInput.oxidationLevel === 'number' ? processingInput.oxidationLevel : (typeof tea?.oxidationLevel === 'number' ? tea.oxidationLevel : -1); // Use -1 to indicate unknown/not applicable
 
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw tea data", 
-            adjustment: `Processing Methods: ${processingMethods.length > 0 ? processingMethods.join(', ') : 'None'}`, 
-            value: `Oxidation Level: ${oxidationLevel >= 0 ? oxidationLevel + '%' : 'Unknown'}`
-        });
-
         if (processingMethods.length === 0 && oxidationLevel < 0) {
-            trace.push({ 
-                step: "Input Validation", 
-                reason: "Missing processing data", 
-                adjustment: "Using default values", 
-                value: "No processing methods or oxidation level identified" 
-            });
-            
             return {
                 description: 'No processing data available.',
                 appliedMethods: [],
                 oxidationLevel: -1,
                 roastLevel: "Unknown",
-                analysis: {},
-                trace
+                analysis: {}
             };
         }
 
         const appliedMethods = processingMethods;
         const roastLevel = determineRoastLevel(appliedMethods);
-        
-        trace.push({ 
-            step: "Roast Level Determination", 
-            reason: `Methods: ${processingMethods.join(', ')}`, 
-            adjustment: `Determined Roast: ${roastLevel}`, 
-            value: roastLevel 
-        });
 
         // --- Aggregate analysis from reference data based on applied methods ---
         const analysis = {
@@ -104,85 +79,31 @@ export class ProcessingCalculator extends BaseCalculator {
 
         appliedMethods.forEach(method => {
             const methodData = getMethodData(method);
-            trace.push({ 
-                step: "Method Lookup", 
-                reason: `Processing Method: '${method}'`, 
-                adjustment: methodData ? "Found descriptor data" : "No descriptor data found", 
-                value: methodData ? Object.keys(methodData).join(', ') : 'null'
-            });
-            
             if (methodData) {
                 // Aggregate flavor impacts (avoid duplicates)
-                if (Array.isArray(methodData.flavorImpact) && methodData.flavorImpact.length > 0) {
-                    trace.push({ 
-                        step: "Flavor Impact Added", 
-                        reason: `Method: '${method}'`, 
-                        adjustment: `Added: [${methodData.flavorImpact.join(', ')}]`,
-                        value: methodData.flavorImpact.join(', ')
-                    });
-                    
+                if (Array.isArray(methodData.flavorImpact)) {
                     methodData.flavorImpact.forEach(impact => {
                         if (!analysis.flavorImpact.includes(impact)) {
                             analysis.flavorImpact.push(impact);
                         }
                     });
                 }
-                
                 // Aggregate body impact (last one wins or use specific logic)
                 if (methodData.bodyImpact) {
-                    trace.push({ 
-                        step: "Body Impact Updated", 
-                        reason: `Method: '${method}'`, 
-                        adjustment: `Changed to: ${methodData.bodyImpact}`,
-                        value: methodData.bodyImpact
-                    });
-                    
                     analysis.bodyImpact = methodData.bodyImpact;
                 }
-                
                 // Aggregate energetic tendency (average or dominant?) - let's average
                 if (methodData.energeticTendency) {
-                    const tendencyValue = { 
-                        "cooling": -1, 
-                        "neutral-cooling": -0.5,
-                        "neutral": 0, 
-                        "neutral-warming": 0.5,
-                        "warming": 1,
-                        "very warming": 2 // Give "very warming" a higher value
-                    }[methodData.energeticTendency.toLowerCase()] || 0;
-                    
-                    trace.push({ 
-                        step: "Energetic Tendency Contribution", 
-                        reason: `Method: '${method}'`, 
-                        adjustment: `Added tendency: ${methodData.energeticTendency} (${tendencyValue})`,
-                        value: `Running sum: ${energeticSum + tendencyValue} (count: ${energeticCount + 1})`
-                    });
-                    
+                    const tendencyValue = { cooling: -1, neutral: 0, warming: 1 }[methodData.energeticTendency] || 0;
                     energeticSum += tendencyValue;
                     energeticCount++;
                 }
-                
-                // Aggregate alertness modifier (last one wins or specific logic)
+                 // Aggregate alertness modifier (last one wins or specific logic)
                 if (methodData.alertnessImpactModifier) {
-                    trace.push({ 
-                        step: "Alertness Modifier Updated", 
-                        reason: `Method: '${method}'`, 
-                        adjustment: `Changed to: ${methodData.alertnessImpactModifier}`,
-                        value: methodData.alertnessImpactModifier
-                    });
-                    
                     analysis.alertnessImpactModifier = methodData.alertnessImpactModifier;
                 }
-                
                 // Aggregate compound notes
-                if (Array.isArray(methodData.compoundImpactNotes) && methodData.compoundImpactNotes.length > 0) {
-                    trace.push({ 
-                        step: "Compound Impact Notes Added", 
-                        reason: `Method: '${method}'`, 
-                        adjustment: `Added: [${methodData.compoundImpactNotes.join(', ')}]`,
-                        value: methodData.compoundImpactNotes.join(', ')
-                    });
-                    
+                 if (Array.isArray(methodData.compoundImpactNotes)) {
                     methodData.compoundImpactNotes.forEach(note => {
                         if (!analysis.compoundImpactNotes.includes(note)) {
                             analysis.compoundImpactNotes.push(note);
@@ -195,64 +116,24 @@ export class ProcessingCalculator extends BaseCalculator {
         // Determine final energetic tendency based on average
         if (energeticCount > 0) {
             const avgTendency = energeticSum / energeticCount;
-            let finalTendency;
-            
-            if (avgTendency >= 1.5) finalTendency = "very warming";
-            else if (avgTendency > 0.5) finalTendency = "warming";
-            else if (avgTendency > 0 && avgTendency <= 0.5) finalTendency = "neutral-warming";
-            else if (avgTendency < 0 && avgTendency >= -0.5) finalTendency = "neutral-cooling";
-            else if (avgTendency < -0.5) finalTendency = "cooling";
-            else finalTendency = "neutral";
-            
-            trace.push({ 
-                step: "Final Energetic Tendency Calculation", 
-                reason: `Average value: ${avgTendency.toFixed(2)}`, 
-                adjustment: `Determined as: ${finalTendency}`,
-                value: finalTendency
-            });
-            
-            analysis.energeticTendency = finalTendency;
+            if (avgTendency > 0.5) analysis.energeticTendency = "warming";
+            else if (avgTendency < -0.5) analysis.energeticTendency = "cooling";
+            else analysis.energeticTendency = "neutral";
         }
 
         // Consider oxidation level for energetic tendency (simple override for now)
-        if (oxidationLevel >= 70) {
-            trace.push({ 
-                step: "Oxidation-Based Tendency Override", 
-                reason: `High oxidation level: ${oxidationLevel}%`, 
-                adjustment: `Changed energetic tendency to: warming`,
-                value: "warming"
-            });
-            
-            analysis.energeticTendency = "warming";
-        }
-        else if (oxidationLevel >= 0 && oxidationLevel < 15) {
-            trace.push({ 
-                step: "Oxidation-Based Tendency Override", 
-                reason: `Low oxidation level: ${oxidationLevel}%`, 
-                adjustment: `Changed energetic tendency to: cooling`,
-                value: "cooling"
-            });
-            
-            analysis.energeticTendency = "cooling";
-        }
+        if (oxidationLevel >= 70) analysis.energeticTendency = "warming";
+        else if (oxidationLevel >= 0 && oxidationLevel < 15) analysis.energeticTendency = "cooling";
 
         // --- Generate Description ---
         const description = this.generateProcessingDescription(appliedMethods, oxidationLevel, roastLevel, analysis, tea?.type);
-        
-        trace.push({ 
-            step: "Description Generation", 
-            reason: "Summarizing processing analysis", 
-            adjustment: "Generated human-readable description", 
-            value: description.substring(0, 50) + "..." // Truncate for trace
-        });
 
         return {
             description,
             appliedMethods,
             oxidationLevel, // Keep raw level
             roastLevel, // Determined roast level
-            analysis, // The object holding specific impacts
-            trace
+            analysis // The object holding specific impacts
         };
     }
 
