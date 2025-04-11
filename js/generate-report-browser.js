@@ -48,10 +48,10 @@ function calculateAllDataForTea(tea, calculators, matchers) {
 
         // 2. Extract Analysis Inputs for Matchers
         const geographyAnalysis = geographyResult.data?.geography || {};
-        const processingAnalysis = processingResult.data?.processing?.analysis || {};
-        const teaTypeAnalysis = teaTypeResult.data?.teaType?.analysis || {};
-        const flavorAnalysis = flavorResult.data?.flavor?.analysis || {};
-        const compoundAnalysis = compoundResult.data?.compounds?.analysis || {};
+        const processingAnalysis = processingResult.data?.processing || {};
+        const teaTypeAnalysis = teaTypeResult.data?.teaType || {};
+        const flavorAnalysis = flavorResult.data?.flavor || {};
+        const compoundAnalysis = compoundResult.data?.compounds || {};
 
         // 3. Run Matchers
         const seasonMatchResult = seasonMatcher.matchSeason(

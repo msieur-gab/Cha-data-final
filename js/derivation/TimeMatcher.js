@@ -42,9 +42,9 @@ export class TimeMatcher {
         let trace = [];
         
         // --- Extract and CONVERT data ---
-        const stimulationStr = compoundAnalysis.stimulationLevel || "moderate"; // e.g., "Low"
-        const relaxationStr = compoundAnalysis.relaxationLevel || "moderate"; // e.g., "High"
-        const compoundProfile = compoundAnalysis.compoundProfile || "Balanced";
+        const stimulationStr = compoundAnalysis?.analysis?.stimulationLevel || compoundAnalysis.stimulationLevel || "moderate"; // e.g., "Low"
+        const relaxationStr = compoundAnalysis?.analysis?.relaxationLevel || compoundAnalysis.relaxationLevel || "moderate"; // e.g., "High"
+        const compoundProfile = compoundAnalysis?.analysis?.compoundProfile || compoundAnalysis.compoundProfile || "Balanced";
 
         trace.push({ 
             step: "Input Processing", 
@@ -58,7 +58,7 @@ export class TimeMatcher {
         const relaxationLevelNum = this.levelMap[relaxationStr.toLowerCase()] ?? 3; // Default to moderate (3) if unknown
 
         // Get caffeine level string and tea type name correctly
-        const typicalCaffeineStr = teaTypeAnalysis.typicalCaffeine || "medium"; // e.g., "Medium-High"
+        const typicalCaffeineStr = teaTypeAnalysis?.analysis?.typicalCaffeine || teaTypeAnalysis.typicalCaffeine || "medium"; // e.g., "Medium-High"
         const primaryTeaType = teaTypeAnalysis.primaryType || ""; // Use primaryType
 
         trace.push({ 
@@ -117,11 +117,12 @@ export class TimeMatcher {
                  this.addTimeWithTrace(trace, timeScores, "Night", -25, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
                  break;
             case "Balanced":
+            case "Balanced & Focused": // Grouping similar profiles
                  // Balanced teas are more versatile, apply smaller adjustments
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 10, "Compound Profile Adjustment", "Profile is 'Balanced'");
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 15, "Compound Profile Adjustment", "Profile is 'Balanced'");
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 15, "Compound Profile Adjustment", "Profile is 'Balanced'");
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 5, "Compound Profile Adjustment", "Profile is 'Balanced'");
+                 this.addTimeWithTrace(trace, timeScores, "Morning", 10, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
+                 this.addTimeWithTrace(trace, timeScores, "Midday", 15, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
+                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 15, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
+                 this.addTimeWithTrace(trace, timeScores, "Evening", 5, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
                  break;
              case "Calm & Clear":
              case "Smooth & Sustained": // Grouping similar profiles

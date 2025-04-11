@@ -274,10 +274,10 @@ function generateTestSections(tea) {
     
     // Extract necessary data for matchers
     const geographyAnalysis = geographyResult.data?.geography || {};
-    const processingAnalysis = processingResult.data?.processing?.analysis || {};
-    const teaTypeAnalysis = teaTypeResult.data?.teaType?.analysis || {};
-    const flavorAnalysis = flavorResult.data?.flavor?.analysis || {};
-    const compoundAnalysis = compoundResult.data?.compounds?.analysis || {};
+    const processingAnalysis = processingResult.data?.processing || {};
+    const teaTypeAnalysis = teaTypeResult.data?.teaType || {};
+    const flavorAnalysis = flavorResult.data?.flavor || {};
+    const compoundAnalysis = compoundResult.data?.compounds || {};
     
     // ---> ADD THESE LOGS <---
 console.log("Inputs for TimeMatcher - Compound Analysis:", JSON.stringify(compoundAnalysis, null, 2));
@@ -765,10 +765,10 @@ function generateJsonData(tea) {
     
     // Extract necessary data for matchers
     const geographyAnalysis = geographyResult.data?.geography || {};
-    const processingAnalysis = processingResult.data?.processing?.analysis || {};
-    const teaTypeAnalysis = teaTypeResult.data?.teaType?.analysis || {};
-    const flavorAnalysis = flavorResult.data?.flavor?.analysis || {};
-    const compoundAnalysis = compoundResult.data?.compounds?.analysis || {};
+    const processingAnalysis = processingResult.data?.processing || {};
+    const teaTypeAnalysis = teaTypeResult.data?.teaType || {};
+    const flavorAnalysis = flavorResult.data?.flavor || {};
+    const compoundAnalysis = compoundResult.data?.compounds || {};
     
     // Get recommendations using matchers
     const recommendedSeasons = seasonMatcher.matchSeason(
@@ -1704,8 +1704,8 @@ function generateActivityExplanation(activity, tea) {
  * @returns {string} Markdown text
  */
 function createActivityMatchMarkdown(activityMatch) {
-    // Handle missing data
-    if (!activityMatch || !activityMatch.recommendations || !activityMatch.recommendedActivities || !activityMatch.activityClusters) {
+    // Handle missing data - Fixed condition to only check essentials 
+    if (!activityMatch || !activityMatch.recommendedActivities) {
         return '## Activity Matching Results\n\nNo activity matching data available or calculation failed.';
     }
 
@@ -1725,7 +1725,7 @@ function createActivityMatchMarkdown(activityMatch) {
 
     // Display Recommended Activity Clusters
     markdown += `## Recommended Activity Themes\n\n`;
-    if (activityMatch.activityClusters.length > 0) {
+    if (activityMatch.activityClusters && activityMatch.activityClusters.length > 0) {
         activityMatch.activityClusters.forEach(cluster => {
             markdown += `### ${cluster.theme} (Avg Score: ${cluster.score}%)\n`;
             // List top 1-3 activities within the cluster

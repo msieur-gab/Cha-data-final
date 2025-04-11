@@ -127,16 +127,16 @@ async function runTraceGeneration() {
         const compoundAnalysis = compoundResult.data?.compounds || {};    // Use top-level object for compounds
 
 
-        const seasonMatchResult = matchers.season.matchSeason(geographyAnalysis, processingAnalysis.analysis, teaTypeAnalysis.analysis, flavorAnalysis.analysis); // Pass analysis sub-objects
+        const seasonMatchResult = matchers.season.matchSeason(geographyAnalysis, processingAnalysis, teaTypeAnalysis, flavorAnalysis); // Pass complete objects
         fullMarkdown += formatTraceToMarkdown("Season Matching", seasonMatchResult);
 
-        const activityMatchResult = matchers.activity.matchActivity(compoundAnalysis.analysis, teaTypeAnalysis.analysis, flavorAnalysis.analysis); // Pass analysis sub-objects
+        const activityMatchResult = matchers.activity.matchActivity(compoundAnalysis, teaTypeAnalysis, flavorAnalysis); // Pass complete objects
         fullMarkdown += formatTraceToMarkdown("Activity Matching", activityMatchResult);
 
-        const foodMatchResult = matchers.food.matchFood(flavorAnalysis.analysis, processingAnalysis.analysis, teaTypeAnalysis.analysis); // Pass analysis sub-objects
+        const foodMatchResult = matchers.food.matchFood(flavorAnalysis, processingAnalysis, teaTypeAnalysis); // Pass complete objects
         fullMarkdown += formatTraceToMarkdown("Food Matching", foodMatchResult);
 
-        const timeMatchResult = matchers.time.matchTime(compoundAnalysis.analysis, teaTypeAnalysis.analysis, processingAnalysis.analysis); // Pass analysis sub-objects
+        const timeMatchResult = matchers.time.matchTime(compoundAnalysis, teaTypeAnalysis, processingAnalysis); // Pass complete objects
         fullMarkdown += formatTraceToMarkdown("Time Matching", timeMatchResult);
 
         // --- Display Report ---

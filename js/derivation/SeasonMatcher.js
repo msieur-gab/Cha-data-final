@@ -72,10 +72,11 @@ export class SeasonMatcher {
         const { energeticTendency: processingThermalEffect = "neutral", roastLevel = "None" } = processingAnalysis; 
 
         // Tea Type Info
-        const { seasonalTendency: typeSeasonalTendency = "neutral" } = teaTypeAnalysis; 
+        const { seasonalTendency: typeSeasonalTendency = "neutral" } = teaTypeAnalysis?.analysis || teaTypeAnalysis || {}; 
 
         // Flavor Info
-        const { seasonalAffinityHints: flavorSeasonHints = [], dominantFlavorCategories = [] } = flavorAnalysis;
+        const seasonalAffinityHints = flavorAnalysis?.analysis?.seasonalAffinityHints || flavorAnalysis.seasonalAffinityHints || [];
+        const dominantFlavorCategories = flavorAnalysis?.profile?.categories || flavorAnalysis.dominantFlavorCategories || [];
         
         trace.push({ 
             step: "Input Processing", 
@@ -166,16 +167,16 @@ export class SeasonMatcher {
         }
 
         // 3. Adjustment from Flavor Seasonal Hints
-        if (flavorSeasonHints.length > 0) {
+        if (seasonalAffinityHints.length > 0) {
             trace.push({ 
                 step: "Flavor Seasonal Hints", 
                 reason: "Processing flavor hints", 
-                adjustment: `Found ${flavorSeasonHints.length} seasonal hints`, 
-                value: flavorSeasonHints.join(', ')
+                adjustment: `Found ${seasonalAffinityHints.length} seasonal hints`, 
+                value: seasonalAffinityHints.join(', ')
             });
         }
         
-        flavorSeasonHints.forEach(hint => {
+        seasonalAffinityHints.forEach(hint => {
             // Handle direct season mentions
             this.seasons.forEach(season => {
                 if (season.toLowerCase().includes(hint.toLowerCase())) {

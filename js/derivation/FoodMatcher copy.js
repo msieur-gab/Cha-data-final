@@ -24,7 +24,7 @@ export class FoodMatcher {
 
         // --- Mappings & Definitions ---
         // (These can be moved to descriptor files and imported if preferred)
-        
+
         // Define food clusters with related items
         this.foodClusters = [
              { occasion: "Breakfast", foods: ["Breakfast Foods", "Toast", "Oatmeal", "Yogurt", "Fruit Salad", "Pancakes", "Pastries", "Scones", "Eggs"] },
@@ -168,12 +168,12 @@ export class FoodMatcher {
         // Only add score if the food is in our known list
         if (this.allKnownFoods.includes(normalizedFood)) {
             const currentScore = scoreMap.get(normalizedFood) || 0; // Should have been initialized
-        const newScore = currentScore + score;
+            const newScore = currentScore + score;
             scoreMap.set(normalizedFood, newScore);
-        
-        trace.push({
-            step: reasonStep,
-            reason: reasonDetail,
+
+            trace.push({
+                step: reasonStep,
+                reason: reasonDetail,
                 adjustment: `${score >= 0 ? '+' : ''}${score} -> ${normalizedFood}`,
                 value: newScore.toFixed(0)
             });
@@ -202,7 +202,7 @@ export class FoodMatcher {
         const intensityLevel = this.getIntensityLevel(intensityString);
         const mouthfeelDescriptor = processingAnalysis?.analysis?.bodyImpact ?? "";
         const roastLevel = processingAnalysis?.roastLevel ?? "None";
-        
+
         trace.push({
             step: "Input Extraction", reason: "Processing analysis objects",
             adjustment: `Hints:${flavorHints.length}, Categories:${dominantCategories.length}, Dominant:${dominantFlavors.length}, Intensity:${intensityString}(${intensityLevel}), Mouthfeel:${mouthfeelDescriptor}, Roast:${roastLevel}`,
@@ -235,7 +235,7 @@ export class FoodMatcher {
                 }
             });
         }
-        
+
         // --- 5. Apply Scores from Specific Dominant Flavors ---
         if (dominantFlavors.length > 0) {
             trace.push({ step: "Applying Specific Flavor Hints", reason: "Dominant flavors identified", adjustment: `Processing ${dominantFlavors.length} dominant flavors` });
@@ -249,7 +249,7 @@ export class FoodMatcher {
                 }
             });
         }
-        
+
         // --- 6. Apply Adjustments (Mouthfeel, Intensity, Roast) ---
         // Mouthfeel
         if (mouthfeelDescriptor) {
@@ -298,7 +298,7 @@ export class FoodMatcher {
 
         const normalizedScores = this.normalizeFoodScores(foodPairingScores);
         trace.push({ step: "Score Normalization", reason: "Scaling scores to 0-100", adjustment: `Normalized ${Object.keys(normalizedScores).length} scores`});
-        
+
         const recommendedPairings = this.getRecommendedPairings(normalizedScores);
         trace.push({ step: "Recommendation Generation", reason: "Selecting top pairings", adjustment: `Selected ${recommendedPairings.length} pairings`, value: recommendedPairings.map(p => `${p.name}(${p.score})`).join(', ') });
 
@@ -319,7 +319,7 @@ export class FoodMatcher {
     }
 
     // --- Helper Functions --- (Keep/Adapt normalizeFoodScores, getRecommendedPairings, groupFoodPairings, generateFoodDescription from previous version)
-    
+
     /**
      * Normalize the food scores to a 0-100 scale
      */
@@ -330,7 +330,7 @@ export class FoodMatcher {
         const scores = [...foodScores.values()];
         const maxScore = Math.max(...scores, 1); // Ensure maxScore is at least 1
         const minScore = Math.min(...scores, this.config.baseScore); // Min observed, but not less than base
-        
+
         for (const [food, score] of foodScores.entries()) {
             let normalizedScore = 0;
             // Avoid division by zero if max/min are same (or very close)
@@ -346,40 +346,40 @@ export class FoodMatcher {
         }
         return result;
     }
-    
+
     /**
      * Get recommended food pairings based on normalized scores
      */
     getRecommendedPairings(normalizedScores) {
         const sortedFoods = Object.entries(normalizedScores)
             .sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
-        
+
         if (sortedFoods.length === 0) return [{ name: "Versatile", score: 50 }];
-        
+
         const maxScore = sortedFoods[0][1];
         // Use absolute threshold and relative threshold for better recommendations
         const absoluteThreshold = 65;
         const relativeThreshold = 20; // Within X points of top score
-        
+
         const topFoods = sortedFoods
             .filter(([food, score]) => score >= absoluteThreshold && score >= maxScore - relativeThreshold)
             .map(([food, score]) => ({ name: food, score }));
-        
+
         // Fallback if filtering leaves nothing
         if (topFoods.length === 0 && sortedFoods.length > 0) {
             return [{ name: sortedFoods[0][0], score: sortedFoods[0][1] }];
         }
-        
+
         return topFoods.slice(0, this.config.maxRecommendations);
     }
-    
+
     /**
      * Group food pairings into thematic clusters
      */
     groupFoodPairings(normalizedScores) {
         const result = [];
         const threshold = this.config.clusterThreshold;
-        
+
         this.foodClusters.forEach(cluster => {
             const matchingFoods = [];
             let totalScore = 0;
@@ -405,21 +405,21 @@ export class FoodMatcher {
                 });
             }
         });
-        
+
         result.sort((a, b) => b.score - a.score); // Sort clusters by average score
         return result;
     }
-    
+
     /**
      * Generate a description of recommended foods and clusters
      */
     generateFoodDescription(results) {
         const { recommendedFoods, mealClusters } = results;
-        
+
         if (!recommendedFoods || recommendedFoods.length === 0 || (recommendedFoods.length === 1 && recommendedFoods[0].name === "Versatile")) {
             return "This tea is versatile and pairs well with a wide variety of foods.";
         }
-        
+
         let description = "This tea pairs especially well with ";
         if (recommendedFoods.length === 1) {
             description += `${recommendedFoods[0].name.toLowerCase()} (${recommendedFoods[0].score}% match).`;
@@ -432,7 +432,7 @@ export class FoodMatcher {
             const topCluster = mealClusters[0];
             description += ` It's particularly suited for "${topCluster.occasion}" occasions (${topCluster.score}% match).`;
         }
-        
+
         return description;
     }
 }

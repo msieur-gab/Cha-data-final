@@ -91,9 +91,9 @@ export class ActivityMatcher {
         let trace = [];
         
         // --- Extract and CONVERT data ---
-        const compoundProfile = compoundAnalysis.compoundProfile || "Balanced";
-        const stimulationStr = compoundAnalysis.stimulationLevel || "moderate";
-        const relaxationStr = compoundAnalysis.relaxationLevel || "moderate";
+        const compoundProfile = compoundAnalysis?.analysis?.compoundProfile || compoundAnalysis.compoundProfile || "Balanced";
+        const stimulationStr = compoundAnalysis?.analysis?.stimulationLevel || compoundAnalysis.stimulationLevel || "moderate";
+        const relaxationStr = compoundAnalysis?.analysis?.relaxationLevel || compoundAnalysis.relaxationLevel || "moderate";
 
         trace.push({ 
             step: "Input Processing", 
@@ -107,10 +107,10 @@ export class ActivityMatcher {
         const relaxationLevelNum = this.levelMap[relaxationStr.toLowerCase()] ?? 3;
 
         // Use correct property names from teaTypeAnalysis
-        const baseActivityHints = teaTypeAnalysis.baseActivityHints || [];
+        const baseActivityHints = teaTypeAnalysis?.analysis?.baseActivityHints || teaTypeAnalysis.baseActivityHints || [];
         const primaryTeaType = teaTypeAnalysis.primaryType || ""; // Use primaryType
 
-        const activityHints = flavorAnalysis.activityHints || [];
+        const activityHints = flavorAnalysis?.analysis?.activityHints || flavorAnalysis.activityHints || [];
         // Assuming flavorProfile is primarily for flavor-based hints below, keep as is
         const flavorProfile = flavorAnalysis.flavorProfile || "";
         
