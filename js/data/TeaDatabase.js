@@ -83,7 +83,7 @@ export const teaDatabase = [
         caffeineLevel: 3.5,
         lTheanineLevel: 6.5,
         flavorProfile: ["floral", "buttery", "sweet", "creamy", "honeysuckle"],
-        processingMethods: ["withered", "partial-oxidation", "rolled", "minimal-roast"],
+        processingMethods: ["withered", "partial-oxidation", "ball-rolled", "minimal-roast"],
         geography: {
             altitude: 1500,   // Ali Mountain high elevation
             humidity: 80,     // High humidity
@@ -183,7 +183,7 @@ export const teaDatabase = [
         caffeineLevel: 5.0,
         lTheanineLevel: 4.2,
         flavorProfile: ["honey", "orchid", "fruity", "floral", "roasted", "tropical"],
-        processingMethods: ["withered", "partial-oxidation", "medium-roast", "hand-rolled"],
+        processingMethods: ["withered", "partial-oxidation", "medium-roast", "strip-rolled"],
         geography: {
             altitude: 1200,   // Phoenix Mountain
             humidity: 78,     // Subtropical humidity

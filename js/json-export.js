@@ -7,6 +7,8 @@
 import './components/TestSection.js';
 import './components/TeaSidebar.js';
 import TeaDatabase from './data/TeaDatabase.js';
+import { brewingMatcher } from './derivation/brewingMatcher.js';
+import brewingRecommendations from './descriptors/brewingGuide.js';
 
 // import { EffectSystemConfig } from './config/EffectSystemConfig.js';
 import { TeaTypeCalculator } from './calculators/TeaTypeCalculator.js';
@@ -328,6 +330,17 @@ console.log("Inputs for TimeMatcher - Processing Analysis:", JSON.stringify(proc
         idealRanges: recommendedTimesResult.idealRanges
     };
     
+    // Get Brewing Recommendations using the refactored getBrewingInfo
+    const gongfuBrewingInfo = brewingMatcher.getBrewingInfo(tea, 'gongfu', processingAnalysis);
+    const westernBrewingInfo = brewingMatcher.getBrewingInfo(tea, 'western', processingAnalysis);
+
+    // Add results to the main results object
+    allResults.brewingMatch = {
+        gongfu: gongfuBrewingInfo,
+        western: westernBrewingInfo,
+        _sectionRef: "brewing-recommendations"
+    };
+    
     // Generate derivative insights from the results
     const insights = generateInsightsFromResults(tea, allResults);
     
@@ -412,6 +425,14 @@ console.log("Inputs for TimeMatcher - Processing Analysis:", JSON.stringify(proc
             inference: createTimeMatchMarkdown(allResults.timeMatch),
             rawOutput: JSON.stringify(allResults.timeMatch, null, 2),
             dataFlow: `TimeMatcher → ${tea.name} → Recommended Times`
+        },
+        {
+            id: 'brewing-recommendations',
+            title: 'Brewing Recommendations',
+            calculator: 'BrewingMatcher',
+            inference: createBrewingRecommendationMarkdown(gongfuBrewingInfo, westernBrewingInfo),
+            rawOutput: JSON.stringify({ gongfu: gongfuBrewingInfo, western: westernBrewingInfo }, null, 2),
+            dataFlow: `BrewingMatcher + BrewingGuide -> ${tea.name} -> Brewing Recommendations`
         },
         {
             id: 'insights',
@@ -722,9 +743,11 @@ function formatComponentScoresMarkdown(scores) {
 
 /**
  * Generate JSON data for a given tea
- * @param {Object} tea - The tea to analyze
+ * @param {Object} tea - The tea to generate JSON data for
  */
 function generateJsonData(tea) {
+    if (!tea) return;
+
     // Initialize config with simple object instead of using EffectSystemConfig
     const config = {
         // Simple config with reasonable defaults
@@ -811,25 +834,23 @@ function generateJsonData(tea) {
         idealRanges: recommendedTimesResult.idealRanges
     };
     
+    // Get Brewing Recommendations using the refactored getBrewingInfo
+    const gongfuBrewingInfo = brewingMatcher.getBrewingInfo(tea, 'gongfu', processingAnalysis);
+    const westernBrewingInfo = brewingMatcher.getBrewingInfo(tea, 'western', processingAnalysis);
+
+    // Add results to the main results object
+    allResults.brewingMatch = {
+        gongfu: gongfuBrewingInfo,
+        western: westernBrewingInfo,
+        _sectionRef: "brewing-recommendations"
+    };
+    
     // Generate derivative insights from the results
     const insights = generateInsightsFromResults(tea, allResults);
     
     // Generate the JSON structure
     currentJsonData = {
-        tea: {
-            name: tea.name || 'Unknown',
-            originalName: tea.originalName || '',
-            type: tea.type || 'unknown',
-            origin: tea.origin || 'Unknown',
-            compounds: {
-                lTheanine: tea.lTheanineLevel || 0,
-                caffeine: tea.caffeineLevel || 0,
-                ratio: tea.lTheanineLevel / tea.caffeineLevel
-            },
-            flavorProfile: tea.flavorProfile || [],
-            processingMethods: tea.processingMethods || [],
-            geography: tea.geography || {}
-        },
+        tea: tea,
         analysis: {
             teaType: teaTypeResult.data,
             compounds: compoundResult.data,
@@ -840,6 +861,7 @@ function generateJsonData(tea) {
             activityMatch: allResults.activityMatch,
             foodMatch: allResults.foodMatch,
             timeMatch: allResults.timeMatch,
+            brewingMatch: allResults.brewingMatch,
             insights: insights
         },
         calculatedAt: new Date().toISOString(),
@@ -854,11 +876,12 @@ function generateJsonData(tea) {
             'analysis.activityMatch': 'activity-match',
             'analysis.foodMatch': 'food-match',
             'analysis.timeMatch': 'time-match',
+            'analysis.brewingMatch': 'brewing-recommendations',
             'analysis.insights': 'insights'
         }
     };
     
-    // Display the JSON with references
+    // Display the updated JSON
     displayJsonWithReferences(currentJsonData);
 }
 
@@ -1849,6 +1872,51 @@ function createTimeMatchMarkdown(timeMatch) {
     markdown += `- Overall caffeine level\n`;
     markdown += `- Tea type traditional consumption patterns\n\n`;
     markdown += `The TimeMatcher algorithm balances the tea's energetic properties with typical daily rhythms.`;
+
+    return markdown;
+}
+
+/**
+ * Create markdown for brewing recommendations section
+ * @param {Object} gongfuInfo - Gongfu brewing info
+ * @param {Object} westernInfo - Western brewing info
+ * @returns {string} Markdown text
+ */
+function createBrewingRecommendationMarkdown(gongfuInfo, westernInfo) {
+    let markdown = `# Brewing Recommendations\n\n`;
+
+    const formatStyle = (styleName, info) => {
+        if (!info || info.error) {
+            return `## ${styleName} Style\n\n*Error: ${info?.error || 'Could not retrieve recommendations.'}*\n\n`;
+        }
+        let md = `## ${styleName} Style\n\n`;
+        md += `- **Leaf Amount:** ${info.leafAmount || 'N/A'}\n`;
+        md += `- **Water Temp:** ${info.waterTemp || 'N/A'}\n`;
+        // Format steeping time array nicely for Gongfu
+        if (Array.isArray(info.steepingTime)) {
+            md += `- **Steeping Time (s):** ${info.steepingTime.join(' → ')} (for infusions 1, 2, 3, 4+)\n`;
+        } else {
+            md += `- **Steeping Time (min):** ${info.steepingTime || 'N/A'}\n`;
+        }
+        if (info.rinseTimes) {
+            md += `- **Rinses:** ${info.rinseTimes}\n`;
+        }
+        if (info.vesselRecommendation) {
+            md += `- **Vessel:** ${info.vesselRecommendation.preferred.join(' / ')}\n`;
+            md += `  - *Note:* ${info.vesselRecommendation.notes || ''}\n`;
+        }
+        if (info.notes) {
+            md += `- **Notes:** ${info.notes}\n`;
+        }
+        if (info.teas) {
+            md += `- **Teas:** ${info.teas.join(' / ')}\n`;
+        }
+        md += '\n';
+        return md;
+    };
+
+    markdown += formatStyle("Gongfu", gongfuInfo);
+    markdown += formatStyle("Western", westernInfo);
 
     return markdown;
 }

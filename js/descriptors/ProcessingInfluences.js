@@ -33,6 +33,53 @@ export const processingInfluences = {
         compoundImpactNotes: ["stops enzymatic changes"]
     },
 
+       // --- Rolling/Shaping Techniques ---
+       'rolled': {
+        description: 'Process of curling, twisting or rolling tea leaves to shape them and break cell walls to influence oxidation.',
+        category: 'shaping/bruising',
+        flavorImpact: ["concentrates flavor compounds", "can increase extraction rate", "enhances complexity"],
+        mouthFeel: "fuller extraction", 
+        energeticTendency: "neutral",
+        compoundEffectModifier: "enhanced strength",
+        compoundImpactNotes: ["increased compound extraction", "accelerates oxidation when used before firing"]
+    },
+    'hand-rolled': {
+        description: 'Traditional artisanal method of rolling leaves by hand, typically yielding less bruising than machine-rolling.',
+        category: 'shaping/bruising',
+        flavorImpact: ["creates complex flavor profile", "preserves leaf integrity", "gentler extraction"],
+        mouthFeel: "refined", 
+        energeticTendency: "neutral",
+        compoundEffectModifier: "balanced extraction", 
+        compoundImpactNotes: ["controls oxidation rate", "preserves leaf structure"]
+    },
+    'ball-rolled': {
+        description: 'Tight rolling into small balls (e.g., Taiwanese high mountain oolongs), resulting in gradual unfurling during brewing.',
+        category: 'shaping/bruising',
+        flavorImpact: ["creates multi-infusion complexity", "protects aromatic compounds", "concentrated flavor release"],
+        mouthFeel: "silky, evolving with each infusion", 
+        energeticTendency: "neutral-warming",
+        compoundEffectModifier: "gradual release", 
+        compoundImpactNotes: ["extended release of compounds", "preserves volatile aromatics"]
+    },
+    'strip-rolled': {
+        description: 'Rolling leaves into long, twisted strips (common in many oolongs), balancing oxidation and flavor release.',
+        category: 'shaping/bruising',
+        flavorImpact: ["balanced flavor profile", "moderate extraction rate", "preserves complexity"],
+        mouthFeel: "medium", 
+        energeticTendency: "neutral",
+        compoundEffectModifier: "balanced", 
+        compoundImpactNotes: ["balanced oxidation", "moderate cell rupture"]
+    },
+    'machine-rolled': {
+        description: 'Modern mechanical rolling that typically creates more uniform shapes and greater cell wall breakage.',
+        category: 'shaping/bruising',
+        flavorImpact: ["accelerates extraction", "can increase astringency", "consistent flavor profile"],
+        mouthFeel: "stronger, potentially more astringent", 
+        energeticTendency: "neutral",
+        compoundEffectModifier: "intensified", 
+        compoundImpactNotes: ["increases cell wall rupture", "faster compound release"]
+    },
+
     // --- Roasting ---
     'minimal-roast': {
         description: 'Very light roasting (often for light oolongs or finishing) preserving brightness.',
@@ -194,6 +241,15 @@ export const processingInfluences = {
         compoundEffectModifier: "smooth, grounding energy", // Renamed & Describes effect profile change
         compoundImpactNotes: ["microbial transformation of compounds", "produces statins (in some)", "reduces caffeine bioavailability?"]
     },
+    'pile-fermented': {
+        description: 'Accelerated fermentation method used for shou/ripe puerh, where leaves are piled in controlled conditions.',
+        category: 'fermentation',
+        flavorImpact: ["develops earthy/woody notes", "reduces bitterness", "can have compost-like qualities when young"],
+        mouthFeel: "smooth, thick", 
+        energeticTendency: "warming",
+        compoundEffectModifier: "gentle, grounding", 
+        compoundImpactNotes: ["rapid microbial transformation", "changes compound profile"]
+    },
 
     // --- Scented ---
     'jasmine-scented': {
@@ -204,6 +260,24 @@ export const processingInfluences = {
         energeticTendency: "cooling",
         compoundEffectModifier: "calming influence", // Renamed & Aroma therapy aspect
         compoundImpactNotes: ["adds volatile aroma compounds from jasmine"]
+    },
+    'rose-scented': {
+        description: 'Tea infused with rose aroma, typically using fresh rose petals layered with tea leaves.',
+        category: 'scenting',
+        flavorImpact: ["adds sweet floral rose notes", "enhances perceived sweetness"],
+        mouthFeel: "unchanged (depends on base tea)", 
+        energeticTendency: "cooling",
+        compoundEffectModifier: "uplifting, calming", 
+        compoundImpactNotes: ["adds rose volatile compounds", "may contain trace essential oils"]
+    },
+    'osmanthus-scented': {
+        description: 'Tea infused with sweet, fruity osmanthus flowers, common in oolong and green teas.',
+        category: 'scenting',
+        flavorImpact: ["adds apricot-like floral sweetness", "fruity undertones"],
+        mouthFeel: "unchanged (depends on base tea)", 
+        energeticTendency: "neutral-cooling",
+        compoundEffectModifier: "uplifting", 
+        compoundImpactNotes: ["adds fruity-floral volatiles"]
     },
     // Add 'osmanthus-scented', 'rose-scented' similarly if needed...
 
@@ -218,6 +292,51 @@ export const processingInfluences = {
         compoundImpactNotes: ["maximizes surface area for quick extraction", "can damage leaf structure"]
     }
     // Add 'modern-steaming' if distinct from traditional...
+};
+
+// Processing method categorization by tea type
+export const teaTypeProcessing = {
+    "green": {
+        essential: ["withering", "fixation", "rolling/shaping", "drying"],
+        common: ["steamed", "pan-fired", "shade-grown", "hand-rolled", "sun-dried"],
+        varieties: {
+            "japanese": ["steamed", "machine-rolled", "modern-steaming"],
+            "chinese": ["pan-fired", "hand-rolled", "strip-rolled"],
+            "specialty": ["shade-grown", "minimal-processing"]
+        }
+    },
+    "white": {
+        essential: ["withering", "drying"],
+        common: ["minimal-processing", "sun-dried", "indoor-withered"],
+        varieties: {
+            "traditional": ["outdoor-withered", "sun-dried"],
+            "modern": ["indoor-withered", "controlled-drying"]
+        }
+    },
+    "oolong": {
+        essential: ["withering", "bruising/rolling", "partial-oxidation", "fixation", "rolling/shaping", "drying"],
+        common: ["rolled", "oxidised", "partial-oxidation", "roasted"],
+        varieties: {
+            "chinese": ["strip-rolled", "medium-roast", "heavy-roast", "charcoal-roasted"],
+            "taiwanese": ["ball-rolled", "minimal-roast", "light-roast"]
+        }
+    },
+    "black": {
+        essential: ["withering", "rolling", "full-oxidation", "drying"],
+        common: ["full-oxidation", "rolled", "orthodox"],
+        varieties: {
+            "orthodox": ["hand-rolled", "machine-rolled"],
+            "ctc": ["CTC"]
+        }
+    },
+    "puerh": {
+        essential: ["withering", "fixation", "rolling/shaping", "drying"],
+        common: ["sun-dried", "compressed", "aged", "fermented"],
+        varieties: {
+            "sheng": ["sun-dried", "natural-fermented", "compressed", "aged"],
+            "shou": ["pile-fermented", "compressed"]
+        }
+    }
 };
 
 export default processingInfluences;

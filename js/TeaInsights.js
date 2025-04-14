@@ -1,11 +1,17 @@
 // TeaInsights.js
-// Modular approach to tea analysis without TeaEffectCalculator dependency
+// Modular approach to tea analysis using dedicated matcher classes
 
 import { TeaTypeCalculator } from './calculators/TeaTypeCalculator.js';
 import { CompoundCalculator } from './calculators/CompoundCalculator.js';
 import { ProcessingCalculator } from './calculators/ProcessingCalculator.js';
 import { GeographyCalculator } from './calculators/GeographyCalculator.js';
 import { FlavorCalculator } from './calculators/FlavorCalculator.js';
+// Import dedicated matcher classes
+import { TimeMatcher } from './derivation/TimeMatcher.js';
+import { FoodMatcher } from './derivation/FoodMatcher.js';
+import { ActivityMatcher } from './derivation/ActivityMatcher.js';
+import { brewingMatcher } from './derivation/brewingMatcher.js';
+import { SeasonMatcher } from './derivation/SeasonMatcher.js';
 // import { SeasonCalculator } from './calculators/SeasonCalculator.js';
 // import { EffectSystemConfig } from './config/EffectSystemConfig.js';
 // import { defaultConfig } from './config/defaultConfig.js';
@@ -14,44 +20,50 @@ export class TeaInsights {
   // Constructor with simpler dependencies
   constructor(config = {}) {
     // Initialize with a simple config object
-    // this.config = {
-    //   normalizeScores: true,
-    //   dominantEffectThreshold: 6.5,
-    //   supportingEffectThreshold: 3.5
-    // };
+    this.config = config;
+    
+    // Initialize calculators
+    this.teaTypeCalculator = new TeaTypeCalculator(config);
+    this.compoundCalculator = new CompoundCalculator(config);
+    this.processingCalculator = new ProcessingCalculator(config);
+    this.geographyCalculator = new GeographyCalculator(config);
+    this.flavorCalculator = new FlavorCalculator(config);
+    
+    // Initialize matchers
+    this.timeMatcher = new TimeMatcher(config);
+    this.foodMatcher = new FoodMatcher(config);
+    this.activityMatcher = new ActivityMatcher(config);
+    this.brewingMatcher = brewingMatcher;
+    this.seasonMatcher = new SeasonMatcher(config);
   }
   
-  // Core analysis method - simpler and more direct
+  // Core analysis method
   analyzeTea(tea) {
     if (!tea) {
       console.error('No tea data provided for analysis');
       return null;
     }
     
-    // Initialize individual calculators
-    const teaTypeCalculator = new TeaTypeCalculator(this.config);
-    const compoundCalculator = new CompoundCalculator(this.config);
-    const processingCalculator = new ProcessingCalculator(this.config);
-    const geographyCalculator = new GeographyCalculator(this.config);
-    const flavorCalculator = new FlavorCalculator(this.config);
-    // const seasonCalculator = new SeasonCalculator(this.config);
-    
     // Run individual calculations directly
-    const typeResult = teaTypeCalculator.calculate(tea);
-    const compoundResult = compoundCalculator.calculate(tea);
-    const processingResult = processingCalculator.calculate(tea);
-    const geographyResult = geographyCalculator.calculate(tea);
-    const flavorResult = flavorCalculator.calculate(tea);
-    // const seasonalResult = seasonCalculator.calculate(tea);
+    const teaTypeResult = this.teaTypeCalculator.calculate(tea);
+    const compoundResult = this.compoundCalculator.calculate(tea);
+    const processingResult = this.processingCalculator.calculate(tea);
+    const geographyResult = this.geographyCalculator.calculate(tea);
+    const flavorResult = this.flavorCalculator.calculate(tea);
     
-    // Return all results directly without complex score normalization
+    // Extract analysis data
+    const teaTypeAnalysis = teaTypeResult.data?.teaType || {};
+    const compoundAnalysis = compoundResult.data?.compounds || {};
+    const processingAnalysis = processingResult.data?.processing || {};
+    const geographyAnalysis = geographyResult.data?.geography || {};
+    const flavorAnalysis = flavorResult.data?.flavor || {};
+    
     return {
-      teaType: typeResult.data,
-      compounds: compoundResult.data,
-      processing: processingResult.data,
-      geography: geographyResult.data,
-      flavor: flavorResult.data,
-      // seasonal: seasonalResult.data
+      teaType: teaTypeAnalysis,
+      compounds: compoundAnalysis,
+      processing: processingAnalysis,
+      geography: geographyAnalysis,
+      flavor: flavorAnalysis
     };
   }
   
@@ -59,223 +71,134 @@ export class TeaInsights {
   getTimingRecommendations(tea) {
     if (!tea) return null;
     
-    // Get basic analysis
+    console.log("TeaInsights: Getting timing recommendations for", tea.name);
+    
+    // Get analysis results
     const analysis = this.analyzeTea(tea);
     
-    // Extract relevant scores
-    const caffeineLevel = tea.caffeineLevel || 0;
-    const lTheanineLevel = tea.lTheanineLevel || 0;
-    const ratio = lTheanineLevel / (caffeineLevel || 1);
-    
-    // Create timing recommendations using direct rules
-    const timings = {
-      morning: 0, 
-      afternoon: 0, 
-      evening: 0,
-      night: 0
-    };
-    
-    // Base recommendations on caffeine level
-    if (caffeineLevel > 7) {
-      timings.morning += 40;
-      timings.afternoon += 20;
-      timings.evening -= 30;
-      timings.night -= 50;
-    } else if (caffeineLevel > 4) {
-      timings.morning += 30;
-      timings.afternoon += 30;
-      timings.evening -= 10;
-      timings.night -= 30;
-    } else {
-      timings.evening += 20;
-      timings.night += 10;
+    try {
+      // Call matchTime with the exact same parameters as in json-export.js
+      const result = this.timeMatcher.matchTime(
+        analysis.compounds,
+        analysis.teaType,
+        analysis.processing
+      );
+      console.log("TeaInsights: Time matcher result:", result);
+      return result;
+    } catch (error) {
+      console.error("TeaInsights: Error in time matching:", error);
+      return { error: "Time matching failed: " + error.message };
     }
-    
-    // L-theanine to caffeine ratio adjustments
-    if (ratio > 1.5) {
-      timings.evening += 30;
-      timings.night += 20;
-    } else if (ratio < 0.8) {
-      timings.morning += 20;
-    }
-    
-    // Tea type adjustments
-    if (tea.type === "green") {
-      timings.morning += 20;
-      timings.afternoon += 10;
-    } else if (tea.type === "black") {
-      timings.morning += 30;
-      timings.evening -= 20;
-    } else if (tea.type === "white") {
-      timings.afternoon += 20;
-      timings.evening += 10;
-    }
-    
-    // Normalize scores (cap between 0-100)
-    Object.keys(timings).forEach(key => {
-      timings[key] = Math.min(100, Math.max(0, timings[key] + 50)); // Base 50 + adjustments
-    });
-    
-    // Find best time
-    const bestTime = Object.entries(timings)
-      .sort((a, b) => b[1] - a[1])[0][0];
-    
-    return {
-      recommendations: timings,
-      bestTime,
-      explanation: this.generateTimingExplanation(bestTime, tea, ratio)
-    };
   }
   
   // Seasonal recommendations
   getSeasonalRecommendations(tea) {
     if (!tea) return null;
     
-    // Get basic analysis
+    console.log("TeaInsights: Getting seasonal recommendations for", tea.name);
+    
+    // Get analysis results
     const analysis = this.analyzeTea(tea);
     
-    // Create seasonal recommendations
-    const seasons = {
-      spring: 50,
-      summer: 50,
-      autumn: 50,
-      winter: 50
-    };
-    
-    // Tea type adjustments
-    if (tea.type === "green") {
-      seasons.spring += 30;
-      seasons.summer += 20;
-      seasons.autumn -= 10;
-      seasons.winter -= 10;
-    } else if (tea.type === "black") {
-      seasons.autumn += 20;
-      seasons.winter += 30;
-      seasons.summer -= 10;
-    } else if (tea.type === "white") {
-      seasons.spring += 20;
-      seasons.summer += 30;
-    } else if (tea.type === "oolong") {
-      seasons.autumn += 30;
-      seasons.spring += 10;
-    } else if (tea.type === "puerh") {
-      seasons.winter += 30;
-      seasons.autumn += 20;
+    try {
+      // Call matchSeason with the exact same parameters as in json-export.js
+      const result = this.seasonMatcher.matchSeason(
+        analysis.geography,
+        analysis.processing,
+        analysis.teaType,
+        analysis.flavor
+      );
+      console.log("TeaInsights: Season matcher result:", result);
+      return result;
+    } catch (error) {
+      console.error("TeaInsights: Error in season matching:", error);
+      return { error: "Season matching failed: " + error.message };
     }
-    
-    // Temperature considerations
-    const isWarmTea = tea.temperature && tea.temperature > 85;
-    if (isWarmTea) {
-      seasons.winter += 20;
-      seasons.autumn += 10;
-      seasons.summer -= 20;
-    }
-    
-    // Flavor profile adjustments
-    if (tea.flavorProfile) {
-      if (tea.flavorProfile.includes('floral') || tea.flavorProfile.includes('fresh')) {
-        seasons.spring += 20;
-        seasons.summer += 10;
-      }
-      if (tea.flavorProfile.includes('fruity') || tea.flavorProfile.includes('bright')) {
-        seasons.summer += 20;
-      }
-      if (tea.flavorProfile.includes('spicy') || tea.flavorProfile.includes('woody')) {
-        seasons.autumn += 20;
-        seasons.winter += 10;
-      }
-      if (tea.flavorProfile.includes('earthy') || tea.flavorProfile.includes('deep')) {
-        seasons.winter += 20;
-        seasons.autumn += 10;
-      }
-    }
-    
-    // Normalize scores (cap between 0-100)
-    Object.keys(seasons).forEach(key => {
-      seasons[key] = Math.min(100, Math.max(0, seasons[key]));
-    });
-    
-    // Find best season
-    const bestSeason = Object.entries(seasons)
-      .sort((a, b) => b[1] - a[1])[0][0];
-    
-    return {
-      recommendations: seasons,
-      bestSeason,
-      explanation: this.generateSeasonalExplanation(bestSeason, tea)
-    };
   }
   
   // Activity recommendations
   getActivityRecommendations(tea) {
     if (!tea) return null;
     
-    // Get basic analysis
+    console.log("TeaInsights: Getting activity recommendations for", tea.name);
+    
+    // Get analysis results
     const analysis = this.analyzeTea(tea);
     
-    // Create activity recommendations
-    const activities = {
-      meditation: 50,
-      work: 50,
-      exercise: 50,
-      socializing: 50,
-      relaxation: 50,
-      reading: 50
-    };
-    
-    // Caffeine level adjustments
-    const caffeineLevel = tea.caffeineLevel || 0;
-    if (caffeineLevel > 7) {
-      activities.work += 30;
-      activities.exercise += 20;
-      activities.socializing += 20;
-      activities.meditation -= 20;
-      activities.relaxation -= 20;
-    } else if (caffeineLevel > 4) {
-      activities.work += 20;
-      activities.exercise += 10;
-      activities.reading += 20;
-    } else {
-      activities.meditation += 20;
-      activities.relaxation += 20;
-      activities.reading += 10;
+    try {
+      // Call matchActivity with the exact same parameters as in json-export.js
+      const result = this.activityMatcher.matchActivity(
+        analysis.compounds,
+        analysis.teaType,
+        analysis.flavor
+      );
+      console.log("TeaInsights: Activity matcher result:", result);
+      return result;
+    } catch (error) {
+      console.error("TeaInsights: Error in activity matching:", error);
+      return { error: "Activity matching failed: " + error.message };
     }
+  }
+  
+  // Food pairing recommendations
+  getFoodPairingRecommendations(tea) {
+    if (!tea) return null;
     
-    // Tea type adjustments
-    if (tea.type === "green") {
-      activities.meditation += 20;
-      activities.reading += 20;
-      activities.work += 10;
-    } else if (tea.type === "black") {
-      activities.work += 20;
-      activities.socializing += 20;
-      activities.exercise += 10;
-    } else if (tea.type === "white") {
-      activities.meditation += 30;
-      activities.reading += 20;
-      activities.relaxation += 10;
-    } else if (tea.type === "oolong") {
-      activities.socializing += 20;
-      activities.reading += 10;
-      activities.work += 10;
+    console.log("TeaInsights: Getting food pairing recommendations for", tea.name);
+    
+    // Get analysis results
+    const analysis = this.analyzeTea(tea);
+    
+    try {
+      // Call matchFood with the exact same parameters as in json-export.js
+      const result = this.foodMatcher.matchFood(
+        analysis.flavor,
+        analysis.processing,
+        analysis.teaType
+      );
+      console.log("TeaInsights: Food matcher result:", result);
+      return result;
+    } catch (error) {
+      console.error("TeaInsights: Error in food matching:", error);
+      return { error: "Food matching failed: " + error.message };
     }
+  }
+  
+  // Brewing recommendations
+  getBrewingRecommendations(tea) {
+    if (!tea) return null;
     
-    // Normalize scores (cap between 0-100)
-    Object.keys(activities).forEach(key => {
-      activities[key] = Math.min(100, Math.max(0, activities[key]));
-    });
+    console.log("TeaInsights: Getting brewing recommendations for", tea.name);
     
-    // Find top activities
-    const topActivities = Object.entries(activities)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(entry => entry[0]);
+    // Get analysis results
+    const analysis = this.analyzeTea(tea);
     
-    return {
-      recommendations: activities,
-      topActivities,
-      explanation: this.generateActivityExplanation(topActivities[0], tea)
-    };
+    try {
+      // Get both brewing styles exactly as in json-export.js
+      const gongfuInfo = this.brewingMatcher.getBrewingInfo(
+        tea,
+        'gongfu',
+        analysis.processing
+      );
+      
+      const westernInfo = this.brewingMatcher.getBrewingInfo(
+        tea,
+        'western',
+        analysis.processing
+      );
+      
+      const result = {
+        gongfu: gongfuInfo,
+        western: westernInfo,
+        _sectionRef: "brewing-recommendations"
+      };
+      
+      console.log("TeaInsights: Brewing results:", result);
+      return result;
+    } catch (error) {
+      console.error("TeaInsights: Error in brewing recommendations:", error);
+      return { error: "Brewing recommendations failed: " + error.message };
+    }
   }
   
   // Geography insights
@@ -294,6 +217,21 @@ export class TeaInsights {
       characteristics: geography.characteristics || {},
       terroir: geography.terroir || {},
       explanation: geography.description || `${tea.name} comes from ${tea.origin}, which impacts its character through the local terroir.`
+    };
+  }
+  
+  // Get all recommendations in one call
+  getAllRecommendations(tea) {
+    if (!tea) return null;
+    
+    return {
+      timing: this.getTimingRecommendations(tea),
+      seasonal: this.getSeasonalRecommendations(tea),
+      activity: this.getActivityRecommendations(tea),
+      foodPairing: this.getFoodPairingRecommendations(tea),
+      brewing: this.getBrewingRecommendations(tea),
+      geography: this.getGeographyInsights(tea),
+      analysis: this.analyzeTea(tea)
     };
   }
   
