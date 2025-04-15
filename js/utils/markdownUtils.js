@@ -142,4 +142,18 @@ export function escapeMarkdown(text) {
         .replace(/\#/g, '\\#')
         .replace(/\>/g, '\\>')
         .replace(/\|/g, '\\|');
+}
+
+/**
+ * Formats a string for display, handling null/undefined and capitalization
+ * @param {string|number|boolean|Object} str - The string to format
+ * @returns {string} Formatted string
+ */
+export function formatString(str) {
+    if (str === null || str === undefined) return 'N/A';
+    if (typeof str !== 'string') return String(str);
+    if (str.trim() === '') return 'N/A';
+    return str.split(/[-_ ]+/) // Split by hyphen, underscore, or space
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
 } 

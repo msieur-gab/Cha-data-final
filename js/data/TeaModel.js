@@ -8,7 +8,7 @@ export class TeaModel {
         this.originalName = data.originalName || '';
         this.type = data.type || '';
         this.subType = data.subType || '';
-        this.origin = data.origin || '';
+        // this.origin = data.origin || '';
         
         // Chemical composition
         this.caffeineLevel = data.caffeineLevel || 0;
@@ -28,6 +28,11 @@ export class TeaModel {
         
         // Geographical information
         this.geography = {
+             // New structured text fields
+             country: data.geography?.country || '',         // e.g., "China"
+             province: data.geography?.province || '',       // e.g., "Fujian"
+             location: data.geography?.location || '',       // e.g., "Wuyi Mountains"
+
             altitude: data.geography?.altitude || 0,
             humidity: data.geography?.humidity || 0,
             latitude: data.geography?.latitude || 0,
@@ -177,6 +182,11 @@ export class TeaModel {
                 geography: {
                     type: 'object',
                     properties: {
+                        // New text fields
+                        country: { type: 'string', description: 'Country of origin' },
+                        province: { type: 'string', description: 'Province or state within the country' },
+                        location: { type: 'string', description: 'Specific location (region, mountain, area)' },
+
                         altitude: { type: 'number', description: 'Growing altitude in meters' },
                         humidity: { type: 'number', description: 'Growing region humidity percentage' },
                         latitude: { type: 'number', description: 'Latitude coordinates' },

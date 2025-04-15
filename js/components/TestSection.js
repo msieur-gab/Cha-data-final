@@ -278,7 +278,20 @@ class TestSection extends HTMLElement {
         this.renderMarkdown(this.inference);
         
         // Set raw output
-        this.rawOutputElement.textContent = this.rawOutput;
+        if (this.rawOutputElement) {
+            console.log(`[TestSection ${this.id}] render() trying to set rawOutputElement.textContent. Value of this.rawOutput:`, this.rawOutput.substring(0, 100) + '...'); // Add/check this log
+            this.rawOutputElement.textContent = this.rawOutput;
+       } else {
+            console.warn(`[TestSection ${this.id}] render() called but rawOutputElement not found.`);
+            // Try finding it again
+            const rawOutputElem = this.shadowRoot.querySelector('.raw-output');
+            if (rawOutputElem) {
+               this.rawOutputElement = rawOutputElem;
+               console.log(`[TestSection ${this.id}] render() found rawOutputElement late, setting textContent now. Value:`, this.rawOutput.substring(0, 100) + '...'); // Add/check this log
+               rawOutputElem.textContent = this.rawOutput;
+            }
+       }
+//    }
     }
     
     // Simple markdown parsing for the inference content

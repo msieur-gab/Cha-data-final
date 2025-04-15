@@ -37,34 +37,79 @@ export class TeaInsights {
     this.seasonMatcher = new SeasonMatcher(config);
   }
   
-  // Core analysis method
-  analyzeTea(tea) {
+  // Private method for centralized core calculations
+  _runCoreCalculations(tea) {
     if (!tea) {
       console.error('No tea data provided for analysis');
       return null;
     }
+
+    try {
+      // Run all core calculations
+      const teaTypeResult = this.teaTypeCalculator.calculate(tea);
+      const compoundResult = this.compoundCalculator.calculate(tea);
+      const processingResult = this.processingCalculator.calculate(tea);
+      const geographyResult = this.geographyCalculator.calculate(tea);
+      const flavorResult = this.flavorCalculator.calculate(tea);
+
+      // Extract and validate analysis data
+      const teaTypeAnalysis = teaTypeResult?.data?.teaType || {};
+      const compoundAnalysis = compoundResult?.data?.compounds || {};
+      const processingAnalysis = processingResult?.data?.processing || {};
+      const geographyAnalysis = geographyResult?.data?.geography || {};
+      const flavorAnalysis = flavorResult?.data?.flavor || {};
+
+      // Return standardized analysis object
+      return {
+        teaType: teaTypeAnalysis,
+        compounds: compoundAnalysis,
+        processing: processingAnalysis,
+        geography: geographyAnalysis,
+        flavor: flavorAnalysis,
+        _sourceTea: tea
+      };
+    } catch (error) {
+      console.error('Error in core calculations:', error);
+      return null;
+    }
+  }
+
+  // Core analysis method
+  analyzeTea(tea) {
+    if (!tea) return null;
     
-    // Run individual calculations directly
-    const teaTypeResult = this.teaTypeCalculator.calculate(tea);
-    const compoundResult = this.compoundCalculator.calculate(tea);
-    const processingResult = this.processingCalculator.calculate(tea);
-    const geographyResult = this.geographyCalculator.calculate(tea);
-    const flavorResult = this.flavorCalculator.calculate(tea);
-    
-    // Extract analysis data
-    const teaTypeAnalysis = teaTypeResult.data?.teaType || {};
-    const compoundAnalysis = compoundResult.data?.compounds || {};
-    const processingAnalysis = processingResult.data?.processing || {};
-    const geographyAnalysis = geographyResult.data?.geography || {};
-    const flavorAnalysis = flavorResult.data?.flavor || {};
-    
-    return {
-      teaType: teaTypeAnalysis,
-      compounds: compoundAnalysis,
-      processing: processingAnalysis,
-      geography: geographyAnalysis,
-      flavor: flavorAnalysis
-    };
+    try {
+        // Get core analysis
+        const coreAnalysis = this._runCoreCalculations(tea);
+        if (!coreAnalysis) return null;
+        
+        // Get additional recommendations
+        const timingResult = this.getTimingRecommendations(tea);
+        const seasonalResult = this.getSeasonalRecommendations(tea);
+        const activityResult = this.getActivityRecommendations(tea);
+        console.log('DEBUG: Got activityResult:', activityResult); // Confirm it's still valid here
+
+        const foodResult = this.getFoodPairingRecommendations(tea);
+        console.log('DEBUG: Got foodResult:', foodResult); // Does execution reach here?
+
+        const brewingResult = this.getBrewingRecommendations(tea);
+        console.log('DEBUG: Got brewingResult:', brewingResult); // Does execution reach here?
+
+        console.log('DEBUG: About to return combined analysis');
+
+        // Combine all analyses
+        return {
+            ...coreAnalysis,
+            timing: timingResult || { recommendations: {}, explanation: "No timing analysis available" },
+            seasonal: seasonalResult || { recommendations: {}, explanation: "No seasonal analysis available" },
+            activities: activityResult || { recommendations: {}, explanation: "No activity analysis available" },
+            food: foodResult || { recommendations: {}, explanation: "No food pairing analysis available" },
+            brewing: brewingResult || { recommendations: {}, explanation: "No brewing analysis available" }
+        };
+    } catch (error) {
+        console.error('Error in tea analysis:', error);
+        return null;
+    }
   }
   
   // Time of day recommendations
@@ -73,15 +118,15 @@ export class TeaInsights {
     
     console.log("TeaInsights: Getting timing recommendations for", tea.name);
     
-    // Get analysis results
-    const analysis = this.analyzeTea(tea);
+    // Get standardized analysis
+    const standardAnalysis = this._runCoreCalculations(tea);
+    if (!standardAnalysis) return null;
     
     try {
-      // Call matchTime with the exact same parameters as in json-export.js
       const result = this.timeMatcher.matchTime(
-        analysis.compounds,
-        analysis.teaType,
-        analysis.processing
+        standardAnalysis.compounds,
+        standardAnalysis.teaType,
+        standardAnalysis.processing
       );
       console.log("TeaInsights: Time matcher result:", result);
       return result;
@@ -97,18 +142,17 @@ export class TeaInsights {
     
     console.log("TeaInsights: Getting seasonal recommendations for", tea.name);
     
-    // Get analysis results
-    const analysis = this.analyzeTea(tea);
+    // Get standardized analysis
+    const standardAnalysis = this._runCoreCalculations(tea);
+    if (!standardAnalysis) return null;
     
     try {
-      // Call matchSeason with the exact same parameters as in json-export.js
       const result = this.seasonMatcher.matchSeason(
-        analysis.geography,
-        analysis.processing,
-        analysis.teaType,
-        analysis.flavor
+        standardAnalysis.geography,
+        standardAnalysis.processing,
+        standardAnalysis.teaType,
+        standardAnalysis.flavor
       );
-      console.log("TeaInsights: Season matcher result:", result);
       return result;
     } catch (error) {
       console.error("TeaInsights: Error in season matching:", error);
@@ -122,17 +166,18 @@ export class TeaInsights {
     
     console.log("TeaInsights: Getting activity recommendations for", tea.name);
     
-    // Get analysis results
-    const analysis = this.analyzeTea(tea);
+    // Get standardized analysis
+    const standardAnalysis = this._runCoreCalculations(tea);
+    if (!standardAnalysis) return null;
     
     try {
-      // Call matchActivity with the exact same parameters as in json-export.js
       const result = this.activityMatcher.matchActivity(
-        analysis.compounds,
-        analysis.teaType,
-        analysis.flavor
+        standardAnalysis.compounds,
+        standardAnalysis.teaType,
+        standardAnalysis.flavor
       );
-      console.log("TeaInsights: Activity matcher result:", result);
+      console.log("TeaInsights: Activity matcher result:", result); // Check this log if you added it
+
       return result;
     } catch (error) {
       console.error("TeaInsights: Error in activity matching:", error);
@@ -146,22 +191,51 @@ export class TeaInsights {
     
     console.log("TeaInsights: Getting food pairing recommendations for", tea.name);
     
-    // Get analysis results
-    const analysis = this.analyzeTea(tea);
+    // Get standardized analysis
+    const standardAnalysis = this._runCoreCalculations(tea);
+    if (!standardAnalysis) return null;
     
     try {
-      // Call matchFood with the exact same parameters as in json-export.js
       const result = this.foodMatcher.matchFood(
-        analysis.flavor,
-        analysis.processing,
-        analysis.teaType
+        standardAnalysis.flavor,
+        standardAnalysis.processing,
+        standardAnalysis.teaType
       );
-      console.log("TeaInsights: Food matcher result:", result);
+      
+      // Generate a description for the UI
+      if (result && !result.error) {
+        result.description = this.generateFoodPairingDescription(result, tea);
+      }
+      
       return result;
     } catch (error) {
       console.error("TeaInsights: Error in food matching:", error);
       return { error: "Food matching failed: " + error.message };
     }
+  }
+  
+  // Generate a description for food pairings
+  generateFoodPairingDescription(foodResult, tea) {
+    if (!foodResult || !foodResult.recommendedFoods || foodResult.recommendedFoods.length === 0) {
+      return `${tea.name} is versatile and pairs well with a wide variety of foods.`;
+    }
+    
+    const recommendedFoods = foodResult.recommendedFoods;
+    let description = `${tea.name} pairs especially well with `;
+    
+    if (recommendedFoods.length === 1) {
+      description += `${recommendedFoods[0].name.toLowerCase()} (${recommendedFoods[0].score}% match).`;
+    } else {
+      const foodNames = recommendedFoods.map(f => `${f.name.toLowerCase()} (${f.score}%)`);
+      description += `${foodNames.slice(0, -1).join(', ')}, and ${foodNames.slice(-1)[0]}.`;
+    }
+    
+    if (foodResult.mealClusters && foodResult.mealClusters.length > 0) {
+      const topCluster = foodResult.mealClusters[0];
+      description += ` It's particularly suited for "${topCluster.occasion}" occasions (${topCluster.score}% match).`;
+    }
+    
+    return description;
   }
   
   // Brewing recommendations
@@ -170,34 +244,32 @@ export class TeaInsights {
     
     console.log("TeaInsights: Getting brewing recommendations for", tea.name);
     
-    // Get analysis results
-    const analysis = this.analyzeTea(tea);
+    // Get standardized analysis
+    const standardAnalysis = this._runCoreCalculations(tea);
+    if (!standardAnalysis) return null;
     
     try {
-      // Get both brewing styles exactly as in json-export.js
+      // Get both brewing styles
       const gongfuInfo = this.brewingMatcher.getBrewingInfo(
         tea,
         'gongfu',
-        analysis.processing
+        standardAnalysis.processing
       );
       
       const westernInfo = this.brewingMatcher.getBrewingInfo(
         tea,
         'western',
-        analysis.processing
+        standardAnalysis.processing
       );
       
-      const result = {
+      return {
         gongfu: gongfuInfo,
         western: westernInfo,
         _sectionRef: "brewing-recommendations"
       };
-      
-      console.log("TeaInsights: Brewing results:", result);
-      return result;
     } catch (error) {
-      console.error("TeaInsights: Error in brewing recommendations:", error);
-      return { error: "Brewing recommendations failed: " + error.message };
+      console.error("TeaInsights: Error in brewing matching:", error);
+      return { error: "Brewing matching failed: " + error.message };
     }
   }
   
