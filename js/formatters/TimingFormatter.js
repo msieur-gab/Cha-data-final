@@ -1,8 +1,10 @@
+// js/formatters/TimingFormatter.js
 import { formatString, formatScoreWithBar } from '../utils/markdownUtils.js';
 
 /**
- * Formats the timing analysis results into Markdown.
- * @param {object} timingAnalysis - The timing analysis object from TeaInsights/TimeMatcher.
+ * Formats the hourly timing analysis results into Markdown.
+ * @param {object} timingAnalysis - The timing analysis object from TeaInsights/TimeMatcher (hourly version).
+ * Expected properties: hourlyScores, recommendedTimes, idealRanges, trace
  * @param {string} teaName - The name of the tea.
  * @returns {string} Formatted Markdown string.
  */
@@ -13,59 +15,59 @@ export function formatTimingAnalysis(timingAnalysis, teaName) {
         return markdown + `*No timing analysis available or calculation failed: ${timingAnalysis?.error || 'Unknown error'}*\n\n`;
     }
 
-    // Display best time if available
-    // Note: The TimeMatcher might return recommendedTimes instead of a single bestTime now.
-    // Let's use the top recommended time.
-    const topTime = timingAnalysis.recommendedTimes?.[0];
-    if (topTime) {
-        markdown += `## Best Time to Enjoy\n\n`;
-        markdown += `**Top Recommended Time:** ${formatString(topTime.name)} (${topTime.score}% match)\n\n`;
+    // --- Display Top Recommended Hours ---
+    if (timingAnalysis.recommendedTimes && timingAnalysis.recommendedTimes.length > 0) {
+        markdown += `## Top Recommended Hours\n\n`;
+        timingAnalysis.recommendedTimes.forEach(time => {
+            const hourString = time.hour.toString().padStart(2, '0') + ":00"; // Format as HH:00
+            markdown += `- **${hourString}:** Score ${time.score}%\n`;
+        });
+        markdown += `\n`;
+    } else {
+        markdown += `*No specific peak hours strongly recommended based on thresholds.*\n\n`;
     }
 
-    // Display explanation if available (assuming TimeMatcher provides one now, or generate it here)
-    // For now, we'll use a generic explanation based on top time.
-    if (topTime) {
-        markdown += `This time is suggested based on the tea's compound profile (stimulation/relaxation) and typical daily rhythms.\n\n`;
-    } else if (timingAnalysis.explanation) {
-         markdown += `${timingAnalysis.explanation}\n\n`; // Use explanation if matcher provides it
+    // --- Display Ideal Consumption Ranges ---
+    if (timingAnalysis.idealRanges && timingAnalysis.idealRanges.length > 0) {
+        markdown += `## Ideal Consumption Ranges (Score >= ${timingAnalysis.idealRanges[0]?.threshold || 70}%)\n\n`; // Use actual threshold if available
+        timingAnalysis.idealRanges.forEach(range => {
+            const startHour = range.start.toString().padStart(2, '0') + ":00";
+            const endHour = range.end.toString().padStart(2, '0') + ":59"; // Indicate end of the hour
+            const rangeText = range.start === range.end ? startHour : `${startHour} - ${endHour}`;
+            const wrapIndicator = range.isWraparound ? " (Wraps Around Midnight)" : "";
+            markdown += `- **${rangeText}${wrapIndicator}**: (Avg Score ${range.score}%)\n`;
+        });
+        markdown += `\n`;
+    } else {
+        markdown += `*No extended periods of high suitability identified.*\n\n`;
     }
 
-
-    // Display recommendations (scores) if available
-    if (timingAnalysis.recommendations && Object.keys(timingAnalysis.recommendations).length > 0) {
-        markdown += `## Time of Day Suitability\n\n`;
-        // Sort times based on the standard order if possible, otherwise by score
-        const timeOrder = ["Early Morning", "Morning", "Midday", "Afternoon", "Evening", "Night"];
-        Object.entries(timingAnalysis.recommendations)
-            .sort((a, b) => {
-                const indexA = timeOrder.indexOf(a[0]);
-                const indexB = timeOrder.indexOf(b[0]);
-                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                return b[1] - a[1]; // Fallback sort by score if time not in order
-            })
-            .forEach(([time, score]) => {
-                // Use formatScoreWithBar, assuming score is 0-100
-                markdown += `- **${formatString(time)}:** ${formatScoreWithBar(score, 100)}\n`;
+    // --- Display Hourly Suitability Scores (Optional - can be verbose) ---
+    if (timingAnalysis.hourlyScores && Object.keys(timingAnalysis.hourlyScores).length > 0) {
+        markdown += `## Hourly Suitability Scores (0-100)\n\n`;
+        // Sort by hour for readability
+        Object.entries(timingAnalysis.hourlyScores)
+            .map(([hour, score]) => ({ hour: parseInt(hour), score }))
+            .sort((a, b) => a.hour - b.hour)
+            .forEach(({ hour, score }) => {
+                const hourString = hour.toString().padStart(2, '0') + ":00";
+                // Use formatScoreWithBar for visual representation
+                markdown += `- **${hourString}:** ${formatScoreWithBar(score, 100)}\n`;
             });
         markdown += `\n`;
     }
 
-    // Display ideal ranges if available
-    if (timingAnalysis.idealRanges && timingAnalysis.idealRanges.length > 0) {
-        markdown += `## Ideal Consumption Ranges (Score >= ${timingAnalysis.idealRanges[0]?.threshold || 70}%)\n\n`; // Assuming threshold is available or default
-        timingAnalysis.idealRanges.forEach(range => {
-            if (range.start === range.end) {
-                markdown += `- **${formatString(range.start)}**: Avg Score ${range.score}%\n`;
-            } else {
-                markdown += `- **${formatString(range.start)} to ${formatString(range.end)}**: Avg Score ${range.score}%\n`;
-            }
-        });
-        markdown += `\n`;
-    }
-
-    // Add generic explanation about the logic
+    // --- Add Explanation ---
     markdown += `## Time Matching Logic\n\n`;
-    markdown += `Recommendations are based on factors like caffeine level, L-theanine ratio, and tea type characteristics balanced against typical daily energy patterns.\n`;
+    markdown += `Recommendations are based on hourly scores calculated from the tea's compound profile (stimulation/relaxation), caffeine level, tea type, and general daily energy patterns. Scores indicate suitability relative to the tea's peak potential across the day.\n`;
+
+    // --- Add Trace (Optional - for debugging) ---
+    // if (timingAnalysis.trace && timingAnalysis.trace.length > 0) {
+    //     markdown += `\n## Calculation Trace (Debug)\n\n`;
+    //     timingAnalysis.trace.forEach(step => {
+    //         markdown += `- **${step.step || 'Step'}**: ${step.reason || ''} -> ${step.adjustment || ''} (Value: ${step.value || 'N/A'})\n`;
+    //     });
+    // }
 
     return markdown;
-} 
+}

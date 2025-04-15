@@ -1,406 +1,331 @@
-// TimeMatcher.js
-// Matches a tea's profile to the most suitable time(s) of day for consumption.
+// TimeMatcher.js (Hourly Version - Smoothed Transitions V2)
+// Matches a tea's profile to suitable hours, aiming for lower night scores and smoother curves.
+// Includes fixes for 06:00 peak and reduced evening boosts/penalties.
 
 export class TimeMatcher {
     constructor(config = {}) {
         this.config = {
-            rangeThreshold: config.rangeThreshold || 70,
+            rangeThreshold: config.rangeThreshold || 70, // Score 0-100
+            baseScore: config.baseScore || 50, // Keeping base at 50
+            maxRecommendations: config.maxRecommendations || 3,
             ...config
         };
-        this.timePeriods = [
-            "Early Morning", "Morning", "Midday",
-            "Afternoon", "Evening", "Night"
-        ];
+        this.hours = Array.from({ length: 24 }, (_, i) => i); // [0, 1, ..., 23]
 
-        // Helper mapping for string levels to numbers (adjust scores as needed)
         this.levelMap = {
-             "none": 0, "very low": 1, "low": 2,
-             "moderate": 3, "medium": 3, // Alias medium
-             "medium-high": 4, // Add compound levels
-             "high": 4,
-             "very high": 5
+            "none": 0, "very low": 1, "low": 2,
+            "moderate": 3, "medium": 3,
+            "medium-high": 4,
+            "high": 5,
+            "very high": 6
         };
     }
 
-    // Helper to add score with tracing
-    addTimeWithTrace(trace, scoreMap, time, score, reasonStep, reasonDetail) {
-        if (!time || !this.timePeriods.includes(time)) return; // Only score defined periods
-        const currentScore = scoreMap.get(time) || 0; // Default should be taken care of by init
-        const newScore = currentScore + score;
-        scoreMap.set(time, newScore);
-        
-        trace.push({
-            step: reasonStep, // e.g., "Compound Profile Adjustment"
-            reason: reasonDetail, // e.g., "Profile is 'Intense & Sharp'"
-            adjustment: `${score >= 0 ? '+' : ''}${score} ${time}`,
-            value: newScore
+    // Helper to add score adjustment (unchanged)
+    _adjustScoreForHour(trace, scoreMap, hour, adjustment, reasonStep, reasonDetail) {
+        if (hour < 0 || hour > 23) return;
+        const currentScore = scoreMap.get(hour);
+        // Clamp score slightly above 0 if penalty is applied, to allow some granularity
+        let newScore = currentScore + adjustment;
+        if (adjustment < 0) {
+             newScore = Math.max(1, newScore); // Clamp penalties at 1 instead of 0
+        } else {
+             newScore = Math.max(0, newScore); // Boosts can still start from 0
+        }
+        scoreMap.set(hour, newScore);
+        trace.push({ step: reasonStep, reason: reasonDetail, adjustment: `${adjustment >= 0 ? '+' : ''}${adjustment} @ Hour ${hour}`, value: newScore.toFixed(1) });
+    }
+
+    // Helper to apply profile (unchanged)
+    _applyHourlyProfile(trace, scoreMap, profile, reasonStep, reasonDetail) {
+        if (!Array.isArray(profile) || profile.length !== 24) {
+            console.error("Invalid hourly profile provided.");
+            trace.push({ step: "Error", reason: "Invalid hourly profile applied", adjustment: "Skipped profile application" });
+            return;
+        }
+        this.hours.forEach(hour => {
+            this._adjustScoreForHour(trace, scoreMap, hour, profile[hour], reasonStep, reasonDetail);
         });
     }
 
-    matchTime(compoundAnalysis = {}, teaTypeAnalysis = {}, processingAnalysis = {}) {
-        // Initialize the trace array
-        let trace = [];
-        
-        // --- Extract and CONVERT data ---
-        const stimulationStr = compoundAnalysis?.analysis?.stimulationLevel || compoundAnalysis.stimulationLevel || "moderate"; // e.g., "Low"
-        const relaxationStr = compoundAnalysis?.analysis?.relaxationLevel || compoundAnalysis.relaxationLevel || "moderate"; // e.g., "High"
-        const compoundProfile = compoundAnalysis?.analysis?.compoundProfile || compoundAnalysis.compoundProfile || "Balanced";
+    // --- REFINED Hourly Score Profiles ---
 
-        trace.push({ 
-            step: "Input Processing", 
-            reason: "Raw compound analysis", 
-            adjustment: `Using data: stimulation=${stimulationStr}, relaxation=${relaxationStr}, profile=${compoundProfile}`, 
-            value: compoundProfile
-        });
+    _getStimulationProfile(level) { // level is 0-5
+        const profile = new Array(24).fill(0);
+        const boost = level * 5; // Slightly reduced max boost (+25)
+        const penalty = -level * 8; // Slightly reduced max penalty (-40)
 
-        // Convert string levels to numbers using the map
-        const stimulationLevelNum = this.levelMap[stimulationStr.toLowerCase()] ?? 3; // Default to moderate (3) if unknown
-        const relaxationLevelNum = this.levelMap[relaxationStr.toLowerCase()] ?? 3; // Default to moderate (3) if unknown
-
-        // Get caffeine level string and tea type name correctly
-        const typicalCaffeineStr = teaTypeAnalysis?.analysis?.typicalCaffeine || teaTypeAnalysis.typicalCaffeine || "medium"; // e.g., "Medium-High"
-        const primaryTeaType = teaTypeAnalysis.primaryType || ""; // Use primaryType
-
-        trace.push({ 
-            step: "Tea Type Analysis", 
-            reason: "Raw tea type data", 
-            adjustment: `Type: ${primaryTeaType}, Typical Caffeine: ${typicalCaffeineStr}`, 
-            value: primaryTeaType
-        });
-
-        // Convert typicalCaffeine string to a simpler category for checks
-        let caffeineCategory = "medium"; // Default
-        const lowerCaffeineStr = typicalCaffeineStr.toLowerCase();
-        if (lowerCaffeineStr.includes("very high") || lowerCaffeineStr.includes("high")) {
-            caffeineCategory = "high";
-        } else if (lowerCaffeineStr.includes("very low") || lowerCaffeineStr.includes("low") || lowerCaffeineStr.includes("none")) {
-            caffeineCategory = "low";
+        // Morning/Midday Boost (Starts at 7am to fix 6am peak)
+        for (let h = 7; h <= 16; h++) { // Start boost at 7am
+            let factor = Math.max(0, 1.0 - Math.abs(h - 10.5) / 6.5); // Peak ~10:30
+            profile[h] = boost * factor;
         }
-        
-        trace.push({ 
-            step: "Caffeine Categorization", 
-            reason: `From: ${typicalCaffeineStr}`, 
-            adjustment: `Simplified to: ${caffeineCategory}`, 
-            value: caffeineCategory
-        });
-        // --- End Data Extraction/Conversion ---
+        // Evening/Night Penalty (More gradual onset)
+        for (let h = 18; h <= 23; h++) profile[h] = penalty * 0.6 * (1 + (h - 18) / 5); // Gradual onset, reduced max slightly
+        for (let h = 0; h <= 5; h++) profile[h] = penalty; // Keep strong penalty in deep night
 
+        return profile.map(p => Math.round(p));
+    }
 
-        const timeScores = new Map();
+    _getRelaxationProfile(level) { // level is 0-5
+        const profile = new Array(24).fill(0);
+        const boost = level * 3.5; // Reduced max boost (+17.5)
+        const penalty = -level * 3; // Keep reduced morning penalty (-15 max)
 
-        // Initialize with a base score (e.g., 50) for all periods
-        // This prevents periods from having zero score unless explicitly penalized
-        this.timePeriods.forEach(period => timeScores.set(period, 50));
-        
-        trace.push({ 
-            step: "Score Initialization", 
-            reason: "Baseline setup", 
-            adjustment: "All time periods initialized with score 50", 
-            value: this.timePeriods.join(', ')
-        });
+        // Evening/Night Boost (Peak ~21:00, reduced magnitude, faster decay)
+        for (let h = 17; h <= 23; h++) {
+             let factor = Math.max(0, 1 - Math.abs(h - 21) / 4.5); // Slightly tighter peak
+             if (h === 23 || h === 0 || h === 1) factor *= 0.1; // Very low boost late
+             profile[h] = boost * factor;
+         }
+         for (let h = 0; h <= 1; h++) profile[h] = boost * 0.1; // Keep very low boost after midnight
 
+        // Morning Penalty (Starts at 7am, reduced magnitude)
+        for (let h = 7; h <= 11; h++) profile[h] = penalty;
 
-        // Base scores based on compoundProfile (Using larger increments now)
-        switch (compoundProfile) {
-            case "Intense & Sharp":
-                 this.addTimeWithTrace(trace, timeScores, "Early Morning", 25, "Compound Profile Adjustment", "Profile is 'Intense & Sharp'");
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 35, "Compound Profile Adjustment", "Profile is 'Intense & Sharp'");     
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 15, "Compound Profile Adjustment", "Profile is 'Intense & Sharp'");       
-                 this.addTimeWithTrace(trace, timeScores, "Evening", -20, "Compound Profile Adjustment", "Profile is 'Intense & Sharp'");      
-                 this.addTimeWithTrace(trace, timeScores, "Night", -30, "Compound Profile Adjustment", "Profile is 'Intense & Sharp'");        
+        return profile.map(p => Math.round(p));
+    }
+
+    _getCompoundEffectProfile(compoundProfileName) {
+        const profile = new Array(24).fill(0);
+        // Tuned values for smoother curves and less extreme impact
+        switch (compoundProfileName) {
+             case "Intense & Sharp":
+                 for (let h = 7; h <= 13; h++) profile[h] = 18 * (1 - Math.abs(h - 9.5) / 4.5); // Reduced boost
+                 for (let h = 18; h <= 23; h++) profile[h] = -35 * ( (h-17)/6 );
+                 for (let h = 0; h <= 5; h++) profile[h] = -45; // Reduced penalty
                  break;
-            case "Focused & Energized":
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 30, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 25, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 15, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
-                 this.addTimeWithTrace(trace, timeScores, "Evening", -15, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
-                 this.addTimeWithTrace(trace, timeScores, "Night", -25, "Compound Profile Adjustment", "Profile is 'Focused & Energized'");
+             case "Focused & Energized":
+                 for (let h = 8; h <= 15; h++) profile[h] = 15 * (1 - Math.abs(h - 11) / 5); // Reduced boost
+                 for (let h = 19; h <= 23; h++) profile[h] = -25 * ( (h-18)/5 );
+                 for (let h = 0; h <= 5; h++) profile[h] = -35; // Reduced penalty
                  break;
-            case "Balanced":
-            case "Balanced & Focused": // Grouping similar profiles
-                 // Balanced teas are more versatile, apply smaller adjustments
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 10, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 15, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 15, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 5, "Compound Profile Adjustment", "Profile is 'Balanced' or 'Balanced & Focused'");
+             case "Balanced": case "Balanced & Focused":
+                 for (let h = 9; h <= 17; h++) profile[h] = 6; // Reduced boost
+                 for (let h = 22; h <= 23; h++) profile[h] = -8; // Reduced penalty
                  break;
-             case "Calm & Clear":
-             case "Smooth & Sustained": // Grouping similar profiles
-                 this.addTimeWithTrace(trace, timeScores, "Morning", -10, "Compound Profile Adjustment", "Profile is 'Calm & Clear' or 'Smooth & Sustained'");
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 10, "Compound Profile Adjustment", "Profile is 'Calm & Clear' or 'Smooth & Sustained'");
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 25, "Compound Profile Adjustment", "Profile is 'Calm & Clear' or 'Smooth & Sustained'");
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 30, "Compound Profile Adjustment", "Profile is 'Calm & Clear' or 'Smooth & Sustained'");
-                 this.addTimeWithTrace(trace, timeScores, "Night", 10, "Compound Profile Adjustment", "Profile is 'Calm & Clear' or 'Smooth & Sustained'");
+             case "Calm & Clear": case "Smooth & Sustained":
+                 for (let h = 14; h <= 20; h++) profile[h] = 10 * (1 - Math.abs(h - 17) / 4); // Reduced boost
+                 for (let h = 7; h <= 9; h++) profile[h] = -10; // Reduced penalty
                  break;
-             case "Deeply Calm":
-                 this.addTimeWithTrace(trace, timeScores, "Morning", -30, "Compound Profile Adjustment", "Profile is 'Deeply Calm'");
-                 this.addTimeWithTrace(trace, timeScores, "Midday", -10, "Compound Profile Adjustment", "Profile is 'Deeply Calm'");
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 15, "Compound Profile Adjustment", "Profile is 'Deeply Calm'");
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 35, "Compound Profile Adjustment", "Profile is 'Deeply Calm'");
-                 this.addTimeWithTrace(trace, timeScores, "Night", 30, "Compound Profile Adjustment", "Profile is 'Deeply Calm'");
+             case "Deeply Calm": case "Primarily Relaxing":
+                 for (let h = 18; h <= 23; h++) profile[h] = 15 * (1 - Math.abs(h - 21) / 4); // Reduced boost
+                 for (let h = 0; h <= 1; h++) profile[h] = 3; // Reduced post-midnight boost
+                 for (let h = 7; h <= 12; h++) profile[h] = -20; // Reduced penalty
                  break;
              default:
-                 // Less impact for unknown profiles
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 5, "Compound Profile Adjustment", "Profile is unknown");
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 5, "Compound Profile Adjustment", "Profile is unknown");
-        }
+                 for (let h = 10; h <= 16; h++) profile[h] = 4; // Reduced boost
+                 break;
+         }
+        return profile.map(p => Math.round(p));
+    }
 
-        // Adjust based on stimulation level NUMBER (Using larger increments)
-        // Example mapping: 0=None, 1=VL, 2=L, 3=M, 4=H, 5=VH
-        if (stimulationLevelNum >= 4) { // High or Very High
-            this.addTimeWithTrace(trace, timeScores, "Early Morning", 15, "Stimulation Level Adjustment", `High stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Morning", 20, "Stimulation Level Adjustment", `High stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Midday", 10, "Stimulation Level Adjustment", `High stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Evening", -25, "Stimulation Level Adjustment", `High stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Night", -35, "Stimulation Level Adjustment", `High stimulation level (${stimulationLevelNum})`);
-        } else if (stimulationLevelNum <= 1) { // Very Low or None
-            this.addTimeWithTrace(trace, timeScores, "Morning", -15, "Stimulation Level Adjustment", `Low stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Stimulation Level Adjustment", `Low stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Evening", 15, "Stimulation Level Adjustment", `Low stimulation level (${stimulationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Night", 10, "Stimulation Level Adjustment", `Low stimulation level (${stimulationLevelNum})`);
+    _getCaffeineCategoryProfile(category) {
+        const profile = new Array(24).fill(0);
+        if (category === "high") {
+            for (let h = 7; h <= 14; h++) profile[h] = 10 * (1 - Math.abs(h - 9.5) / 5.5); // Reduced boost
+            for (let h = 18; h <= 23; h++) profile[h] = -40 * ( (h-17)/6 ); // Gradual onset, reduced max penalty
+            for (let h = 0; h <= 5; h++) profile[h] = -50; // Reduced max penalty
+        } else if (category === "low") {
+            // Removed evening boost, keep small morning penalty
+            for (let h = 7; h <= 9; h++) profile[h] = -5;
+            // Add tiny boost late night for low caffeine?
+            for (let h = 20; h <= 23; h++) profile[h] = 3; // Very small boost
         }
+        return profile.map(p => Math.round(p));
+    }
 
-        // Adjust based on relaxation level NUMBER (Using larger increments)
-        if (relaxationLevelNum >= 4) { // High or Very High
-            this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Relaxation Level Adjustment", `High relaxation level (${relaxationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Evening", 25, "Relaxation Level Adjustment", `High relaxation level (${relaxationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Night", 20, "Relaxation Level Adjustment", `High relaxation level (${relaxationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Early Morning", -20, "Relaxation Level Adjustment", `High relaxation level (${relaxationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Morning", -15, "Relaxation Level Adjustment", `High relaxation level (${relaxationLevelNum})`);
-        } else if (relaxationLevelNum <= 1) { // Very Low or None
-            this.addTimeWithTrace(trace, timeScores, "Evening", -15, "Relaxation Level Adjustment", `Low relaxation level (${relaxationLevelNum})`);
-            this.addTimeWithTrace(trace, timeScores, "Night", -20, "Relaxation Level Adjustment", `Low relaxation level (${relaxationLevelNum})`);
-        }
+    _getTeaTypeSpecificProfile(primaryTeaType, subType) {
+         const profile = new Array(24).fill(0);
+         const typeToCheck = subType ? subType.toLowerCase() : primaryTeaType.toLowerCase();
 
-        // Adjust based on caffeine CATEGORY (high/medium/low)
-        if (caffeineCategory === "high") {
-            this.addTimeWithTrace(trace, timeScores, "Early Morning", 10, "Caffeine Level Adjustment", "High caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Morning", 15, "Caffeine Level Adjustment", "High caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Midday", 5, "Caffeine Level Adjustment", "High caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Evening", -30, "Caffeine Level Adjustment", "High caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Night", -40, "Caffeine Level Adjustment", "High caffeine category");
-        } else if (caffeineCategory === "low") {
-            this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Caffeine Level Adjustment", "Low caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Evening", 15, "Caffeine Level Adjustment", "Low caffeine category");
-            this.addTimeWithTrace(trace, timeScores, "Night", 15, "Caffeine Level Adjustment", "Low caffeine category");
-        }
+         if (typeToCheck.includes("gyokuro") || typeToCheck.includes("matcha")) {
+            // Reduced penalties to avoid hitting absolute zero too easily
+            for (let h = 18; h <= 23; h++) profile[h] = -50 * ( (h-17)/6 ); // Gradual onset, reduced max
+            for (let h = 0; h <= 5; h++) profile[h] = -60; // Reduced max
+            for (let h = 10; h <= 16; h++) profile[h] = 8; // Reduced boost
+         } else if (typeToCheck.includes("herbal") || typeToCheck.includes("tisane") || typeToCheck.includes("hojicha") || typeToCheck.includes("chamomile") || typeToCheck.includes("lavender")) {
+            for (let h = 17; h <= 23; h++) profile[h] = 12 * (1 - Math.abs(h-20)/6); // Reduced boost
+            for (let h = 0; h <= 1; h++) profile[h] = 8; // Reduced boost
+            for (let h = 7; h <= 11; h++) profile[h] = -12; // Reduced penalty
+         } else if (typeToCheck.includes("breakfast") || typeToCheck.includes("assam")) {
+             for (let h = 6; h <= 9; h++) profile[h] = 12; // Slightly reduced boost
+             for (let h = 21; h <= 23; h++) profile[h] = -8; // Reduced penalty
+         } else if (typeToCheck.includes("puerh-shou") || typeToCheck.includes("shou")) {
+             for (let h = 14; h <= 19; h++) profile[h] = 6; // Reduced boost
+         }
+         else if (typeToCheck.includes("silver needle")){
+              // Added gentle penalties for late night instead of boost
+              for (let h = 22; h <= 23; h++) profile[h] = -10;
+              for (let h = 0; h <= 4; h++) profile[h] = -15; // Extend penalty slightly
+         }
+         return profile.map(p => Math.round(p));
+    }
 
-        // Adjust based on primaryTeaType (using the correct variable)
-        if (primaryTeaType) {
-            const lowerTeaType = primaryTeaType.toLowerCase();
-             if (lowerTeaType.includes("breakfast") || lowerTeaType.includes("assam") || lowerTeaType.includes("black")) { // Example grouping
-                 this.addTimeWithTrace(trace, timeScores, "Early Morning", 15, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (breakfast/assam/black)`);
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 15, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (breakfast/assam/black)`);
-             }
-             if (lowerTeaType.includes("green") && !lowerTeaType.includes("hojicha")){ // Hojicha is often evening
-                 this.addTimeWithTrace(trace, timeScores, "Morning", 10, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (green)`);
-                 this.addTimeWithTrace(trace, timeScores, "Midday", 5, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (green)`);
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 5, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (green)`);
-                 this.addTimeWithTrace(trace, timeScores, "Evening", -5, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (green)`);
-             }
-             if (lowerTeaType.includes("white")) {
-                 this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (white)`);
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 5, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (white)`);
-             }
-            if (lowerTeaType.includes("herbal") || lowerTeaType.includes("tisane") || lowerTeaType.includes("hojicha") || lowerTeaType.includes("chamomile") || lowerTeaType.includes("lavender")) { // Grouping low/no caffeine
-                 this.addTimeWithTrace(trace, timeScores, "Evening", 15, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (herbal/tisane/hojicha/chamomile/lavender)`);
-                 this.addTimeWithTrace(trace, timeScores, "Night", 15, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (herbal/tisane/hojicha/chamomile/lavender)`);
-            }
-            
-            // Modification 1.1: Apply penalty to gyokuro and matcha for evening/night
-            if (lowerTeaType.includes("gyokuro") || lowerTeaType.includes("matcha")) {
-                this.addTimeWithTrace(trace, timeScores, "Evening", -35, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (gyokuro/matcha)`);
-                this.addTimeWithTrace(trace, timeScores, "Night", -45, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (gyokuro/matcha)`);
-                this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (gyokuro/matcha)`);
-            }
-            
-            // Modification 1.2: Boost Afternoon for Ripe Puerh
-            if (lowerTeaType.includes("puerh-shou") || (lowerTeaType.includes("puerh") && lowerTeaType.includes("ripe"))) {
-                this.addTimeWithTrace(trace, timeScores, "Afternoon", 10, "Tea Type Adjustment", `Tea type: ${primaryTeaType} (puerh-shou/ripe puerh)`);
-            }
-            
-            // Add more specific type adjustments if needed
-        }
 
-        // --- Final Processing ---
-        // Remove periods if their score dropped too low (e.g., below 20)
-        let periodsRemoved = [];
-        for (const [time, score] of timeScores.entries()) {
-            if (score < 20) {
-                periodsRemoved.push(time);
-                timeScores.delete(time);
-            }
-        }
-        
-        if (periodsRemoved.length > 0) {
-            trace.push({ 
-                step: "Score Filtering", 
-                reason: "Removing low-scoring periods", 
-                adjustment: `Removed periods with scores < 20`, 
-                value: periodsRemoved.join(', ')
-            });
-        }
+    // Main matching function (structure unchanged)
+    matchTime(compoundAnalysis = {}, teaTypeAnalysis = {}, processingAnalysis = {}) {
+        let trace = [];
+        const hourlyScores = new Map();
 
-        // Log raw scores before normalization
-        const rawScoresArray = Array.from(timeScores.entries()).map(([time, score]) => `${time}: ${score}`);
-        trace.push({ 
-            step: "Raw Scores", 
-            reason: "Before normalization", 
-            adjustment: "Calculated raw scores for each period", 
-            value: rawScoresArray.join(', ')
-        });
+        this.hours.forEach(hour => hourlyScores.set(hour, this.config.baseScore));
+        trace.push({ step: "Initialization", reason: "Baseline setup", adjustment: `All 24 hours initialized to ${this.config.baseScore}` });
 
-        const normalizedScores = this.normalizeTimeScores(timeScores);
-        trace.push({ 
-            step: "Score Normalization", 
-            reason: "Converting to 0-100 scale", 
-            adjustment: "Normalized all scores", 
-            value: Object.entries(normalizedScores).map(([time, score]) => `${time}: ${score}`).join(', ')
-        });
-        
+        // --- Extract Inputs (Unchanged) ---
+        const stimulationStr = compoundAnalysis?.analysis?.stimulationLevel || compoundAnalysis.stimulationLevel || "moderate";
+        const relaxationStr = compoundAnalysis?.analysis?.relaxationLevel || compoundAnalysis.relaxationLevel || "moderate";
+        const compoundProfile = compoundAnalysis?.analysis?.compoundProfile || compoundAnalysis.compoundProfile || "Balanced";
+        const stimulationLevelNum = this.levelMap[stimulationStr.toLowerCase()] ?? 3;
+        const relaxationLevelNum = this.levelMap[relaxationStr.toLowerCase()] ?? 3;
+
+        const primaryTeaType = teaTypeAnalysis?.teaType || ""; // Assumes fix where this can be 'matcha' etc.
+        const subType = teaTypeAnalysis?.subType || "";
+        const typicalCaffeineStr = teaTypeAnalysis?.analysis?.typicalCaffeine || "medium";
+
+        let caffeineCategory = "medium";
+        const lowerCaffeineStr = typicalCaffeineStr.toLowerCase();
+        if (lowerCaffeineStr.includes("very high") || lowerCaffeineStr.includes("high")) caffeineCategory = "high";
+        else if (lowerCaffeineStr.includes("very low") || lowerCaffeineStr.includes("low") || lowerCaffeineStr.includes("none")) caffeineCategory = "low";
+
+        trace.push({ step: "Input Processing", reason: "Extracting analysis data", adjustment: `Stim: ${stimulationStr}(${stimulationLevelNum}), Relax: ${relaxationStr}(${relaxationLevelNum}), Profile: ${compoundProfile}, CaffeineCat: ${caffeineCategory}, Type: ${primaryTeaType}, SubType: ${subType}` });
+
+        // --- Apply Tuned Profiles ---
+        const compoundProfileAdjustments = this._getCompoundEffectProfile(compoundProfile);
+        this._applyHourlyProfile(trace, hourlyScores, compoundProfileAdjustments, "Compound Profile Adjustment", `Based on profile: '${compoundProfile}'`);
+
+        const stimulationProfileAdjustments = this._getStimulationProfile(stimulationLevelNum);
+        this._applyHourlyProfile(trace, hourlyScores, stimulationProfileAdjustments, "Stimulation Level Adjustment", `Based on level: ${stimulationStr} (${stimulationLevelNum})`);
+
+        const relaxationProfileAdjustments = this._getRelaxationProfile(relaxationLevelNum);
+        this._applyHourlyProfile(trace, hourlyScores, relaxationProfileAdjustments, "Relaxation Level Adjustment", `Based on level: ${relaxationStr} (${relaxationLevelNum})`);
+
+        const caffeineCategoryAdjustments = this._getCaffeineCategoryProfile(caffeineCategory);
+        this._applyHourlyProfile(trace, hourlyScores, caffeineCategoryAdjustments, "Caffeine Category Adjustment", `Based on category: '${caffeineCategory}'`);
+
+        const teaTypeAdjustments = this._getTeaTypeSpecificProfile(primaryTeaType, subType);
+        this._applyHourlyProfile(trace, hourlyScores, teaTypeAdjustments, "Tea Type Specific Adjustment", `Based on type: '${primaryTeaType}', subtype: '${subType}'`);
+
+        // --- Final Processing (Unchanged) ---
+        const finalScores = Object.fromEntries(hourlyScores);
+        const rawScoresArray = Object.entries(finalScores).map(([hour, score]) => `${hour}: ${score.toFixed(0)}`);
+        trace.push({ step: "Raw Scores", reason: "Before normalization", adjustment: "Aggregated raw scores for each hour", value: rawScoresArray.join(', ') });
+
+        const normalizedScores = this.normalizeScores(finalScores); // Using percentile normalization
+        trace.push({ step: "Score Normalization", reason: "Converting to 0-100 scale (Percentile)", adjustment: "Normalized all scores", value: Object.entries(normalizedScores).map(([h, s]) => `${h}:${s}`).join(', ') });
+
         const recommendedTimes = this.getRecommendedTimes(normalizedScores);
-        trace.push({ 
-            step: "Recommendation Generation", 
-            reason: "Finding best time periods", 
-            adjustment: `Selected ${recommendedTimes.length} recommended periods`, 
-            value: recommendedTimes.map(item => `${item.name}: ${item.score}`).join(', ')
-        });
-        
-        const timeRanges = this.identifyTimeRanges(normalizedScores);
-        if (timeRanges.length > 0) {
-            trace.push({ 
-                step: "Range Identification", 
-                reason: "Finding continuous time ranges", 
-                adjustment: `Identified ${timeRanges.length} continuous ranges`, 
-                value: timeRanges.map(range => `${range.start} to ${range.end} (${range.score})`).join(', ')
-            });
+        trace.push({ step: "Recommendation Generation", reason: "Finding best hours", adjustment: `Selected top ${recommendedTimes.length} hours`, value: recommendedTimes.map(item => `${item.hour}:${item.score}`).join(', ') });
+
+        const idealRanges = this.identifyTimeRanges(normalizedScores);
+        if (idealRanges.length > 0) {
+            trace.push({ step: "Range Identification", reason: "Finding continuous blocks of suitable hours", adjustment: `Identified ${idealRanges.length} ranges`, value: idealRanges.map(r => `${r.start}-${r.end}(${r.score})`).join(', ') });
         }
 
         return {
-            recommendations: normalizedScores,
-            recommendedTimes,
-            idealRanges: timeRanges,
+            hourlyScores: normalizedScores,
+            recommendedTimes: recommendedTimes,
+            idealRanges: idealRanges,
             trace
         };
     }
 
-    // --- Normalize Scores (Consider revising) ---
-     normalizeTimeScores(timeScores) {
-         const result = {};
-         const scores = [...timeScores.values()];
+    // --- Helper functions (normalizeScores, getRecommendedTimes, identifyTimeRanges, calculateAverageScore) ---
+    // Keep these the same as the previous percentile version.
 
-         if (scores.length === 0) return {}; // Handle empty map
+    normalizeScores(hourlyScores) {
+        const scoreEntries = Object.entries(hourlyScores);
+        if (scoreEntries.length === 0) return {};
+        const scores = Object.values(hourlyScores).sort((a, b) => a - b);
+        if (scores.length < 2) {
+            return Object.fromEntries(scoreEntries.map(([hour, score]) => [hour, Math.max(0, Math.min(100, Math.round(score)))]));
+        }
+        const medianIndex = Math.floor(scores.length / 2);
+        const q90Index = Math.floor(scores.length * 0.9);
+        const median = scores[medianIndex];
+        const q90 = scores[Math.min(q90Index, scores.length - 1)];
+        const denominator = q90 - median;
 
-         // Maybe normalize based on a fixed potential range (e.g., 0 to 100 raw) instead of max achieved?
-         // Or keep max-based normalization for now.
-         const maxScore = Math.max(...scores, 1);
-         const minScore = Math.min(...scores, 0); // Get min score
+        if (denominator <= 0) {
+            if (scores[0] === scores[scores.length - 1]) {
+                return Object.fromEntries(scoreEntries.map(([hour]) => [hour, 50]));
+            } else {
+                const minScore = scores[0];
+                const maxScore = scores[scores.length - 1];
+                const range = maxScore - minScore;
+                if (range <= 0) return Object.fromEntries(scoreEntries.map(([hour]) => [hour, 50]));
+                return Object.fromEntries(
+                    scoreEntries.map(([hour, score]) => [ hour, Math.max(0, Math.min(100, Math.round(((score - minScore) / range) * 100))) ])
+                );
+            }
+        }
+        return Object.fromEntries(
+            scoreEntries.map(([hour, score]) => {
+                let normalizedScore = 50 + (score - median) * 40 / denominator;
+                normalizedScore = Math.max(0, Math.min(100, Math.round(normalizedScore)));
+                return [hour, normalizedScore];
+            })
+        );
+    }
 
-         // If max and min are close, might indicate low differentiation
-         // Alternative: Normalize 0-100 based on potential range (e.g. 0 to 100 raw base + adjustments)
-
-         for (const [time, score] of timeScores.entries()) {
-             // Option 1: Scale relative to max (current approach)
-             // let normalizedScore = Math.max(0, Math.min(Math.round((score / maxScore) * 100), 100));
-
-             // Option 2: Scale relative to observed min/max range
-             let normalizedScore = 0;
-             if (maxScore > minScore) { // Avoid division by zero if all scores are same
-                 normalizedScore = Math.round(((score - minScore) / (maxScore - minScore)) * 100);
-             } else if (maxScore > 0) { // If all scores are same and positive
-                 normalizedScore = 100;
-             }
-             normalizedScore = Math.max(0, Math.min(normalizedScore, 100)); // Ensure 0-100 bounds
-
-             result[time] = normalizedScore;
-         }
-         console.log("Normalized Time Scores:", result); // Log normalized scores
-         return result;
-     }
-
-
-    // --- Get Recommended Times (Consider revising threshold or logic) ---
     getRecommendedTimes(normalizedScores) {
-         const sortedTimes = Object.entries(normalizedScores)
-             .sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
+        const sortedTimes = Object.entries(normalizedScores)
+             .map(([hour, score]) => ({ hour: parseInt(hour), score }))
+             .sort((a, b) => b.score - a.score);
+         if (sortedTimes.length === 0) return [];
+         const maxScore = sortedTimes[0].score;
+         const absoluteThreshold = 65;
+         const relativeThreshold = 20;
+         const recommended = sortedTimes
+             .filter(item => item.score >= absoluteThreshold && item.score >= maxScore - relativeThreshold)
+             .slice(0, this.config.maxRecommendations);
+        if (recommended.length === 0 && sortedTimes.length > 0) {
+            return [sortedTimes[0]];
+        }
+        recommended.sort((a,b) => a.hour - b.hour);
+        return recommended;
+    }
 
-         if (sortedTimes.length === 0) {
-             return [{ name: "Anytime", score: 50 }]; // Default fallback
-         }
-
-         const maxScore = sortedTimes[0][1];
-         // Maybe use an absolute threshold AND a relative one?
-         // E.g., score >= 70 AND score >= maxScore - 20
-         const absoluteThreshold = 65; // Example: Must score at least 65
-         const relativeThreshold = 20; // Example: Must be within 20 points of max
-
-         const recommendedTimes = sortedTimes
-             .filter(([time, score]) => score >= absoluteThreshold && score >= maxScore - relativeThreshold)
-             .map(([time, score]) => ({ name: time, score }));
-
-         // Fallback if filtering leaves nothing
-         if (recommendedTimes.length === 0) {
-              // Return just the top scoring period if no recommendations meet thresholds
-              return [{ name: sortedTimes[0][0], score: sortedTimes[0][1] }];
-          }
-
-         return recommendedTimes;
-     }
-
-
-    // --- Identify Time Ranges (Keep as is for now) ---
     identifyTimeRanges(normalizedScores) {
-         const ranges = [];
-         // Use a potentially lower threshold for ranges if needed, or keep config.rangeThreshold
-         const threshold = this.config.rangeThreshold;
-         const orderedTimes = this.timePeriods.filter(time =>
-             normalizedScores[time] !== undefined &&
-             normalizedScores[time] >= threshold
-         );
-
-         // (Rest of the range logic remains the same as in your code)
-         if (orderedTimes.length === 0) return [];
-         if (orderedTimes.length === 1) return [{ start: orderedTimes[0], end: orderedTimes[0], score: normalizedScores[orderedTimes[0]] }];
-
-         let rangeStart = orderedTimes[0];
-         let currentRange = [rangeStart];
-         let previousIndex = this.timePeriods.indexOf(rangeStart);
-
-         for (let i = 1; i < orderedTimes.length; i++) {
-             const currentTime = orderedTimes[i];
-             const currentIndex = this.timePeriods.indexOf(currentTime);
-             if (currentIndex === previousIndex + 1) {
-                 currentRange.push(currentTime);
-             } else {
-                 ranges.push({ start: currentRange[0], end: currentRange[currentRange.length - 1], score: this.calculateAverageScore(currentRange, normalizedScores) });
-                 rangeStart = currentTime;
-                 currentRange = [rangeStart];
-             }
-             previousIndex = currentIndex;
+        const ranges = [];
+        const threshold = this.config.rangeThreshold;
+        const suitableHours = this.hours.filter(hour => normalizedScores[hour] >= threshold);
+        if (suitableHours.length === 0) return [];
+        let currentRange = [];
+        for (let i = 0; i < suitableHours.length; i++) {
+            const hour = suitableHours[i];
+            if (currentRange.length === 0 || hour === (currentRange[currentRange.length - 1] + 1) % 24) {
+                currentRange.push(hour);
+            } else {
+                ranges.push({ start: currentRange[0], end: currentRange[currentRange.length - 1], score: this.calculateAverageScore(currentRange, normalizedScores) });
+                currentRange = [hour];
+            }
+        }
+         ranges.push({ start: currentRange[0], end: currentRange[currentRange.length - 1], score: this.calculateAverageScore(currentRange, normalizedScores) });
+         if (ranges.length > 1 && ranges[0].start === 0 && ranges[ranges.length - 1].end === 23) {
+             const lastRange = ranges.pop();
+             const firstRange = ranges.shift();
+             const combinedHours = [...Array(firstRange.end + 1).keys()].concat([...Array(24).keys()].slice(lastRange.start));
+             ranges.push({ start: lastRange.start, end: firstRange.end, score: this.calculateAverageScore(combinedHours, normalizedScores), isWraparound: true });
          }
-         if (currentRange.length > 0) {
-             ranges.push({ start: currentRange[0], end: currentRange[currentRange.length - 1], score: this.calculateAverageScore(currentRange, normalizedScores) });
-         }
-         return ranges;
-     }
+        ranges.sort((a,b) => b.score - a.score);
+        return ranges;
+    }
 
-     // --- Calculate Average Score (Keep as is) ---
-     calculateAverageScore(timeRange, normalizedScores) {
-         const sum = timeRange.reduce((acc, time) => acc + (normalizedScores[time] || 0), 0);
-         return Math.round(sum / timeRange.length);
-     }
-
-     // --- Format Time Ranges (Keep as is) ---
-     formatTimeRanges(ranges) {
-         // (Keep formatting logic as is)
-         if (ranges.length === 0) return "No specific time range recommended";
-         const sortedRanges = [...ranges].sort((a, b) => b.score - a.score);
-         return sortedRanges.map(range => {
-             if (range.start === range.end) return `${range.start} (${range.score}%)`;
-             return `${range.start} to ${range.end} (${range.score}%)`;
-         }).join(', ');
-     }
+    calculateAverageScore(hourRange, normalizedScores) {
+        let hoursToAverage = [];
+        if (!hourRange || hourRange.length === 0) return 0;
+        const start = hourRange[0];
+        const end = hourRange[hourRange.length - 1];
+        if (start <= end) {
+            for (let h = start; h <= end; h++) hoursToAverage.push(h);
+        } else { // Wrap around
+            for (let h = start; h <= 23; h++) hoursToAverage.push(h);
+            for (let h = 0; h <= end; h++) hoursToAverage.push(h);
+        }
+        if (hoursToAverage.length === 0) return 0;
+        const sum = hoursToAverage.reduce((acc, hour) => acc + (normalizedScores[hour] || 0), 0);
+        return Math.round(sum / hoursToAverage.length);
+    }
 }
 
-// Export the class
 export default TimeMatcher;

@@ -8,6 +8,7 @@ export const teaDatabase = [
         name: "Gyokuro",
         originalName: "玉露 (Gyokuro)",
         type: "green",
+        subType: "gyokuro",
         origin: "Uji, Kyoto Prefecture, Japan",
         caffeineLevel: 4.5,
         lTheanineLevel: 9,
