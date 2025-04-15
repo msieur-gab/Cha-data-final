@@ -30,7 +30,7 @@ import { formatString, formatScoreWithBar } from './utils/markdownUtils.js';
 
 // Import the new visualizer component
 
-import '../../shared/components/TeaTimingVisualizer.js';
+// import '../../shared/components/TeaTimingVisualizer.js';
 
 // Current tea and JSON data
 let currentTea = null;
