@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tea Flavor Wheel</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tea Flavor Wheel</h1>
+            <p>An interactive visualization of tea flavor profiles</p>
+        </header>
+        
+        <main>
+            <div class="controls">
+                <div class="tea-type-selector">
+                    <label for="tea-type">Filter by Tea Type:</label>
+                    <select id="tea-type">
+                        <option value="all">All Flavors</option>
+                        <option value="white">White Tea</option>
+                        <option value="green">Green Tea</option>
+                        <option value="yellow">Yellow Tea</option>
+                        <option value="oolong">Oolong Tea</option>
+                        <option value="black">Black Tea</option>
+                        <option value="pu_er">Pu-erh Tea</option>
+                    </select>
+                </div>
+                <div class="search-container">
+                    <input type="text" id="flavor-search" placeholder="Search for flavors...">
+                    <button id="search-button">Search</button>
+                </div>
+            </div>
+            
+            <div id="flavor-wheel-container">
+                <!-- D3 will render the flavor wheel here -->
+            </div>
+            
+            <div id="flavor-details">
+                <h2>Selected Flavor: <span id="selected-flavor-name">None</span></h2>
+                <div id="flavor-info">
+                    <p><strong>Category:</strong> <span id="flavor-category">-</span></p>
+                    <p><strong>Intensity:</strong> <span id="flavor-intensity">-</span></p>
+                    <p><strong>Common in Tea Types:</strong> <span id="flavor-tea-types">-</span></p>
+                    <div id="complementary-flavors">
+                        <h3>Complementary Flavors</h3>
+                        <ul id="complementary-list"></ul>
+                    </div>
+                    <div id="contrasting-flavors">
+                        <h3>Contrasting Flavors</h3>
+                        <ul id="contrasting-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Tea Flavor Wheel - Testing Version</p>
+            <p><a href="../index.html">Return to Tea Details Recorder</a></p>
+        </footer>
+    </div>
+
+    <script src="js/flavorWheelData.js"></script>
+    <script src="js/flavorWheel.js"></script>
+</body>
+</html> 

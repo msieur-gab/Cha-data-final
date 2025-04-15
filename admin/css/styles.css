@@ -1,0 +1,409 @@
+:root {
+    --primary-color: #4d8066;
+    --secondary-color: #f5f5f5;
+    --accent-color: #d4a373;
+    --text-color: #333;
+    --border-color: #ddd;
+    --error-color: #d32f2f;
+    --success-color: #388e3c;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: #f9f9f9;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: var(--primary-color);
+    margin-bottom: 30px;
+    text-align: center;
+    font-weight: 600;
+}
+
+h2 {
+    color: var(--primary-color);
+    margin: 20px 0;
+    font-size: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(77, 128, 102, 0.2);
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #3a6b4f;
+}
+
+#exportButton {
+    background-color: var(--accent-color);
+}
+
+#exportButton:hover {
+    background-color: #b88a5c;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Chip styles */
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    min-height: 40px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--secondary-color);
+    padding: 5px 10px;
+    border-radius: 16px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.chip .chip-text {
+    margin-right: 5px;
+}
+
+.chip .chip-close {
+    cursor: pointer;
+    font-weight: bold;
+    color: #888;
+}
+
+.chip .chip-close:hover {
+    color: var(--error-color);
+}
+
+/* Suggestions */
+.suggestions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.suggestion {
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    padding: 5px 10px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suggestion:hover {
+    background-color: #c8e6c9;
+}
+
+/* Records list */
+#savedRecords {
+    margin-top: 40px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+#recordsList {
+    list-style: none;
+}
+
+.record-item {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.record-item button {
+    padding: 5px 10px;
+    margin-left: 10px;
+}
+
+.record-info h3 {
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.record-actions {
+    display: flex;
+}
+
+/* Modal styles for viewing tea records */
+.record-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.record-modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #888;
+    padding: 0;
+}
+
+.close-modal:hover {
+    color: var(--error-color);
+}
+
+.original-name {
+    font-size: 0.8em;
+    color: #666;
+    font-weight: normal;
+    font-style: italic;
+}
+
+.tea-type-info {
+    margin-bottom: 20px;
+    color: #666;
+}
+
+.tea-origin-info {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.processing-methods-section,
+.flavor-profiles-section,
+.notes-section {
+    margin-bottom: 20px;
+}
+
+.methods-list li,
+.profiles-list li {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.date-section {
+    margin-top: 20px;
+    color: #888;
+    text-align: right;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+
+    .record-modal-content {
+        padding: 15px;
+        width: 95%;
+    }
+}
+
+.map-view-button {
+    background-color: #4285F4; /* Google Maps blue */
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.map-view-button:hover {
+    background-color: #3367D6; /* Darker blue on hover */
+}
+
+/* Custom input and autocomplete styles */
+.custom-input-container {
+    margin-top: 10px;
+    position: relative;
+}
+
+.custom-input-container input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.custom-input-container input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(77, 128, 102, 0.2);
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.autocomplete-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.autocomplete-suggestion:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-suggestion:hover {
+    background-color: #f5f5f5;
+}
+
+.autocomplete-suggestion.selected {
+    background-color: #e8f5e9;
+}
+
+/* Flavor input tabs */
+.input-option-tabs {
+    display: flex;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-button {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tab-button.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    font-weight: 500;
+}
+
+.tab-button:hover {
+    background-color: rgba(77, 128, 102, 0.1);
+}
+
+/* Flavor Wheel Experiment Link */
+.experiment-link {
+    text-align: center;
+    margin-bottom: 25px;
+    background-color: #f0f8f1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px dashed var(--primary-color);
+}
+
+.flavor-wheel-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    background-color: white;
+    border: 1px solid var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.flavor-wheel-link:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+} 
